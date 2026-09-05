@@ -1,0 +1,310 @@
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { notificationService } from '../services/notificationService';
+import {
+  Calendar,
+  Sparkles,
+  User,
+  Bell,
+  LogOut,
+  Menu,
+  X,
+  Radio,
+  Power,
+  ChevronDown,
+  Compass,
+  Home as HomeIcon,
+  ShieldCheck,
+} from 'lucide-react';
+import './Navbar.css';
+
+const Navbar = () => {
+  const { user, isAuthenticated, isProvider, isOnline, goOnline, goOffline, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isTogglingOnline, setIsTogglingOnline] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      notificationService
+        .getNotifications()
+        .then((data) => setUnreadCount(data.unread_count || 0))
+        .catch(() => {});
+    }
+  }, [isAuthenticated, location.pathname]);
+
+  const handleToggleOnline = async () => {
+    setIsTogglingOnline(true);
+    try {
+      if (isOnline) {
+        await goOffline();
+      } else {
+        await goOnline();
+      }
+    } catch {
+      // Toast handled in AuthContext
+    } finally {
+      setIsTogglingOnline(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setUserDropdownOpen(false);
+    setMobileMenuOpen(false);
+    navigate('/login');
+  };
+
+  const closeMenus = () => {
+    setMobileMenuOpen(false);
+    setUserDropdownOpen(false);
+  };
+
+  return (
+    <header className={`app-navbar-header ${scrolled ? 'scrolled' : ''}`}>
+      <div className="container navbar-container">
+        {/* Corner-Rounded Brand Heading & Capsule */}
+        <Link to="/" onClick={closeMenus} className="navbar-brand-pill" title="VEGA Home">
+          <div className="navbar-brand-logo">
+            <img src="/vega-logo.png" alt="VEGA Logo" />
+          </div>
+          <div className="navbar-brand-text">
+            <span className="navbar-brand-title">VEGA</span>
+            <span className="navbar-brand-subtitle">Local Services</span>
+          </div>
+        </Link>
+
+        {/* Desktop Navigation Links with Corner-Rounded Pill & Hover Glow */}
+        <nav className="navbar-nav-list" aria-label="Main Navigation">
+          <Link
+            to="/home"
+            className={`nav-pill-item ${location.pathname === '/home' ? 'active' : ''}`}
+          >
+            <HomeIcon size={16} />
+            <span>Home</span>
+          </Link>
+
+          <Link
+            to="/explore"
+            className={`nav-pill-item ${location.pathname === '/explore' ? 'active' : ''}`}
+          >
+            <Compass size={16} />
+            <span>Services</span>
+          </Link>
+
+          <Link
+            to="/nearby"
+            className={`nav-pill-item ${location.pathname === '/nearby' ? 'active' : ''}`}
+          >
+            <Sparkles size={16} />
+            <span>Nearby Pros</span>
+          </Link>
+
+          {isAuthenticated && (
+            <Link
+              to="/my-bookings"
+              className={`nav-pill-item ${location.pathname === '/my-bookings' ? 'active' : ''}`}
+            >
+              <Calendar size={16} />
+              <span>Bookings</span>
+            </Link>
+          )}
+
+          {/* Provider Mode Quick Toggle */}
+          {isAuthenticated && isProvider && (
+            <button
+              onClick={handleToggleOnline}
+              disabled={isTogglingOnline}
+              className={`nav-provider-toggle ${isOnline ? 'online' : 'offline'}`}
+              title={isOnline ? 'You are ONLINE. Click to go offline.' : 'You are OFFLINE. Click to go online.'}
+            >
+              <span className={`status-dot ${isOnline ? 'online pulse-beacon' : 'offline'}`} />
+              <span>{isOnline ? 'ONLINE' : 'OFFLINE'}</span>
+              <Power size={13} />
+            </button>
+          )}
+        </nav>
+
+        {/* User Actions / Auth Pill Buttons */}
+        <div className="navbar-actions">
+          {isAuthenticated ? (
+            <>
+              {/* Notification Bell with Badge */}
+              <Link
+                to="/notifications"
+                onClick={closeMenus}
+                className="nav-icon-button"
+                title="Notifications"
+                aria-label="Notifications"
+              >
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span className="nav-notification-badge">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* User Dropdown Pill */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                  className={`user-pill-btn ${userDropdownOpen ? 'open' : ''}`}
+                  aria-expanded={userDropdownOpen}
+                  aria-haspopup="true"
+                >
+                  <div className="user-avatar-circle">
+                    {user?.first_name ? user.first_name[0].toUpperCase() : 'U'}
+                  </div>
+                  <span className="user-pill-name">
+                    {user?.first_name || user?.username}
+                  </span>
+                  <ChevronDown size={15} className="user-chevron" />
+                </button>
+
+                {/* Dropdown Menu */}
+                {userDropdownOpen && (
+                  <div className="user-dropdown-menu">
+                    <div className="dropdown-header">
+                      <p className="dropdown-header-name">{user?.full_name || user?.username}</p>
+                      <p className="dropdown-header-email">{user?.email}</p>
+                    </div>
+
+                    <Link to="/profile" onClick={closeMenus} className="dropdown-item">
+                      <User size={16} />
+                      <span>Profile & Settings</span>
+                    </Link>
+
+                    {isProvider ? (
+                      <Link to="/my-talents" onClick={closeMenus} className="dropdown-item">
+                        <Sparkles size={16} />
+                        <span>My Talents & Services</span>
+                      </Link>
+                    ) : (
+                      <Link to="/become-provider" onClick={closeMenus} className="dropdown-item provider-cta">
+                        <Radio size={16} />
+                        <span>Become a Provider</span>
+                      </Link>
+                    )}
+
+                    <button onClick={handleLogout} className="dropdown-item signout">
+                      <LogOut size={16} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+              <Link to="/login" className="btn btn-secondary btn-sm">
+                Log In
+              </Link>
+              <Link to="/register" className="btn btn-primary btn-sm">
+                Get Started
+              </Link>
+            </div>
+          )}
+
+          {/* Mobile Menu Toggle Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="mobile-toggle-btn"
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Drawer */}
+      {mobileMenuOpen && (
+        <div className="mobile-drawer open">
+          <Link
+            to="/"
+            onClick={closeMenus}
+            className={`nav-pill-item ${location.pathname === '/' ? 'active' : ''}`}
+            style={{ width: '100%' }}
+          >
+            <HomeIcon size={16} />
+            <span>Home</span>
+          </Link>
+
+          <Link
+            to="/explore"
+            onClick={closeMenus}
+            className={`nav-pill-item ${location.pathname === '/explore' ? 'active' : ''}`}
+            style={{ width: '100%' }}
+          >
+            <Compass size={16} />
+            <span>Services</span>
+          </Link>
+
+          <Link
+            to="/nearby"
+            onClick={closeMenus}
+            className={`nav-pill-item ${location.pathname === '/nearby' ? 'active' : ''}`}
+            style={{ width: '100%' }}
+          >
+            <Sparkles size={16} />
+            <span>Nearby Pros</span>
+          </Link>
+
+          {isAuthenticated && (
+            <Link
+              to="/my-bookings"
+              onClick={closeMenus}
+              className={`nav-pill-item ${location.pathname === '/my-bookings' ? 'active' : ''}`}
+              style={{ width: '100%' }}
+            >
+              <Calendar size={16} />
+              <span>My Bookings</span>
+            </Link>
+          )}
+
+          {isAuthenticated && isProvider && (
+            <div style={{ padding: '0.5rem 0' }}>
+              <button
+                onClick={handleToggleOnline}
+                disabled={isTogglingOnline}
+                className={`nav-provider-toggle ${isOnline ? 'online' : 'offline'}`}
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                <span className={`status-dot ${isOnline ? 'online pulse-beacon' : 'offline'}`} />
+                <span>{isOnline ? 'ONLINE (Accepting Bookings)' : 'OFFLINE'}</span>
+                <Power size={13} />
+              </button>
+            </div>
+          )}
+
+          {!isAuthenticated && (
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <Link to="/login" onClick={closeMenus} className="btn btn-secondary btn-sm" style={{ flex: 1 }}>
+                Log In
+              </Link>
+              <Link to="/register" onClick={closeMenus} className="btn btn-primary btn-sm" style={{ flex: 1 }}>
+                Get Started
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
+    </header>
+  );
+};
+
+export default Navbar;

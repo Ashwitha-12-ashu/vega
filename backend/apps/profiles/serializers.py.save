@@ -1,0 +1,117 @@
+from rest_framework import serializers
+from .models import UserProfile
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    """Serializer for user profile information."""
+    username = serializers.ReadOnlyField(source='user.username')
+    email = serializers.ReadOnlyField(source='user.email')
+    first_name = serializers.ReadOnlyField(source='user.first_name')
+    last_name = serializers.ReadOnlyField(source='user.last_name')
+    full_name = serializers.ReadOnlyField(source='user.full_name')
+    has_active_talent = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            'id',
+            'username',
+            'email',
+            'first_name',
+            'last_name',
+            'full_name',
+            'phone_number',
+            'bio',
+            'avatar',
+            'is_provider',
+            'is_online',
+            'average_rating',
+            'total_reviews',
+            'has_active_talent',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'average_rating', 'total_reviews', 'created_at', 'updated_at']
+
+    def get_has_active_talent(self, obj):
+        return obj.user.talents.filter(is_active=True).exists()
+
+
+class PublicProviderProfileSerializer(serializers.ModelSerializer):
+    """Public profile serializer for service providers."""
+    provider_id = serializers.ReadOnlyField(source='user.id')
+    username = serializers.ReadOnlyField(source='user.username')
+    full_name = serializers.ReadOnlyField(source='user.full_name')
+    active_talent = serializers.SerializerMethodField()
+    all_talents = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
+    distance_km = serializers.FloatField(required=False, read_only=True)
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            'provider_id',
+            'username',
+            'full_name',
+            'avatar',
+            'bio',
+            'phone_number',
+            'is_online',
+            'average_rating',
+            'total_reviews',
+            'active_talent',
+            'all_talents',
+            'location',
+            'distance_km',
+        ]
+
+    def get_active_talent(self, obj):
+        active = obj.user.talents.filter(is_active=True).first()
+        if active:
+            from apps.services.serializers import TalentSerializer
+            return TalentSerializer(active, context=self.context).data
+        return None
+
+    def get_all_talents(self, obj):
+        from apps.services.serializers import TalentSerializer
+        talents = obj.user.talents.all()
+        return TalentSerializer(talents, many=True, context=self.context).data
+
+    def get_location(self, obj):
+        if hasattr(obj.user, 'location'):
+            from apps.locations.serializers import UserLocationSerializer
+            return UserLocationSerializer(obj.user.location).data
+        return None
+
+
+
+
+
+
+
+
+
+
+
+
+^t^z
+^T^z
+
+^x
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+zzzzzzz^T^Z
+^T^Z
+

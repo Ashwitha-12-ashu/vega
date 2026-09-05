@@ -1,122 +1,225 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import OTPVerification from './pages/OTPVerification/OTPVerification';
+import ResetPassword from './pages/ResetPassword/ResetPassword';
+import ForgotPassword from './pages/ForgotPassword/ForgotPassword';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 
-function App() {
-  const [count, setCount] = useState(0)
+import { ToastProvider } from './context/ToastContext';
+import { AuthProvider } from './context/AuthContext';
+import { LocationProvider } from './context/LocationContext';
+import { ProtectedRoute } from './routes/ProtectedRoute';
+
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+
+import Landing from './pages/Landing/Landing';
+import Login from './pages/Login/Login';
+import Register from './pages/Register/Register';
+import Home from './pages/Home/Home';
+import NearbyProviders from './pages/NearbyProviders/NearbyProviders';
+import ProviderDetails from './pages/ProviderProfile/ProviderDetails';
+import BookingFlow from './pages/Booking/BookingFlow';
+import MyBookings from './pages/MyBookings/MyBookings';
+import Profile from './pages/Profile/Profile';
+import BecomeProvider from './pages/BecomeProvider/BecomeProvider';
+import MyTalents from './pages/MyTalents/MyTalents';
+import Notifications from './pages/Notifications/Notifications';
+import NotFound from './pages/NotFound/NotFound';
+
+import './index.css';
+
+
+function AppRoutes() {
+  const { pathname } = useLocation();
+
+  const isLandingPage = pathname === '/';
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app-container">
 
-      <div className="ticks"></div>
+      {/* Navbar should not appear on landing page */}
+      {!isLandingPage && <Navbar />}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <main className="main-content">
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <Routes>
+
+          {/* Landing */}
+          <Route
+            path="/"
+            element={<Landing />}
+          />
+
+
+          {/* MAIN HOME PAGE */}
+          <Route
+            path="/home"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Keep old URL working */}
+          <Route
+            path="/explore"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Authentication */}
+          <Route
+            path="/login"
+            element={<Login />}
+          />
+
+          <Route
+            path="/register"
+            element={<Register />}
+          />
+
+          <Route
+            path="/forgot-password"
+            element={<ForgotPassword />}
+          />
+
+          <Route
+            path="/otp-verification"
+            element={<OTPVerification />}
+          />
+          <Route
+            path="/verify-otp"
+            element={<OTPVerification />}
+          />
+
+          <Route
+            path="/reset-password"
+            element={<ResetPassword />}
+          />
+          <Route
+            path="/change-password"
+            element={<ResetPassword />}
+          />
+
+
+          {/* Nearby Providers */}
+          <Route
+            path="/nearby"
+            element={
+              <ProtectedRoute>
+                <NearbyProviders />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Provider Profile */}
+          <Route
+            path="/providers/:id"
+            element={
+              <ProtectedRoute>
+                <ProviderDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* User Profile */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Become Provider */}
+          <Route
+            path="/become-provider"
+            element={
+              <ProtectedRoute>
+                <BecomeProvider />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Provider Talents */}
+          <Route
+            path="/my-talents"
+            element={
+              <ProtectedRoute requireProvider>
+                <MyTalents />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Booking */}
+          <Route
+            path="/book/:talentId"
+            element={
+              <ProtectedRoute>
+                <BookingFlow />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* My Bookings */}
+          <Route
+            path="/my-bookings"
+            element={
+              <ProtectedRoute>
+                <MyBookings />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Notifications */}
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* 404 */}
+          <Route
+            path="*"
+            element={<NotFound />}
+          />
+
+        </Routes>
+
+      </main>
+
+      {!isLandingPage && <Footer />}
+
+    </div>
+  );
 }
 
-export default App
+
+export default function App() {
+  return (
+    <ToastProvider>
+
+      <AuthProvider>
+
+        <LocationProvider>
+
+          <Router>
+
+            <AppRoutes />
+
+          </Router>
+
+        </LocationProvider>
+
+      </AuthProvider>
+
+    </ToastProvider>
+  );
+}
