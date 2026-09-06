@@ -52,7 +52,7 @@ class ProfileView(APIView):
             user=request.user
         )
 
-        # Update basic User fields
+        # Update basic User fields in this
         user_data = {}
 
         if 'first_name' in request.data:
