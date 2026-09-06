@@ -4,6 +4,7 @@ import { profileService } from '../../services/profileService';
 import { reviewService } from '../../services/reviewService';
 import RatingStars from '../../components/RatingStars';
 import {
+
   User,
   MapPin,
   Calendar,
@@ -92,7 +93,7 @@ const ProviderDetails = () => {
         <ArrowLeft size={16} /> Back to Search
       </button>
 
-      {/* Main Profile Header Card */}
+      {/* Main Profile Header*/}
       <div
         className="card"
         style={{
