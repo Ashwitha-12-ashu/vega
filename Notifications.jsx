@@ -58,7 +58,7 @@ const Notifications = () => {
             Notifications
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9375rem', marginTop: '0.25rem' }}>
-            Real-time updates regarding your service bookings, appointments, and reviews
+            Real-time updates regarding your  service bookings, appointments, and reviews
           </p>
         </div>
 
