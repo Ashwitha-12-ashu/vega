@@ -118,7 +118,7 @@ const Register = () => {
                 name="first_name"
                 value={formData.first_name}
                 onChange={handleChange}
-                placeholder="Jane"
+                placeholder="Ashwitha"
                 className="form-input"
                 required
               />
@@ -130,7 +130,7 @@ const Register = () => {
                 name="last_name"
                 value={formData.last_name}
                 onChange={handleChange}
-                placeholder="Doe"
+                placeholder="kama"
                 className="form-input"
                 required
               />
@@ -144,7 +144,7 @@ const Register = () => {
               name="username"
               value={formData.username}
               onChange={handleChange}
-              placeholder="janedoe"
+              placeholder="ashupatel"
               className="form-input"
               required
             />
@@ -157,7 +157,7 @@ const Register = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="jane@example.com"
+              placeholder="jane@example.com or .in"
               className="form-input"
               required
             />
@@ -171,7 +171,7 @@ const Register = () => {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="At least 8 chars"
+                placeholder="At least 8 chars including both characters and numbers"
                 className="form-input"
                 required
                 minLength={8}
