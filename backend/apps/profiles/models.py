@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 
-
 class UserProfile(models.Model):
     """
     Profile extension for the unified User model.
