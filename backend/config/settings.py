@@ -3,6 +3,7 @@ Django settings for VEGA backend project.
 """
 
 import os
+import sys
 from pathlib import Path
 from datetime import timedelta
 import dotenv
@@ -11,7 +12,7 @@ import dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load environment variables from .env file if available
-dotenv.load_dotenv(BASE_DIR / '.env')
+dotenv.load_dotenv(BASE_DIR / '.env', override=True)
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'vega-dev-secret-key-super-secure-change-in-prod-2026')
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
@@ -80,7 +81,14 @@ ASGI_APPLICATION = 'config.asgi.application'
 DB_ENGINE = os.getenv('DB_ENGINE', '')
 DB_NAME = os.getenv('DB_NAME', '')
 
-if DB_ENGINE == 'django.contrib.gis.db.backends.postgis' or (DB_NAME and not DB_NAME.endswith('.sqlite3')):
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
+        }
+    }
+elif DB_ENGINE == 'django.contrib.gis.db.backends.postgis' or (DB_NAME and not DB_NAME.endswith('.sqlite3')):
     DATABASES = {
         'default': {
             'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
@@ -175,3 +183,18 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Email Configuration
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 't')
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '').strip()
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '').strip()
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'VEGA <noreply@vega.app>')
+
+if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+else:
+    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
+
+

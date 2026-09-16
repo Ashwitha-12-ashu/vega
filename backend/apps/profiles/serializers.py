@@ -81,7 +81,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
     )
 
     full_name = serializers.SerializerMethodField()
-
+    avatar = serializers.SerializerMethodField()
+    profile_photo_url = serializers.SerializerMethodField()
     certificates = serializers.SerializerMethodField()
 
     class Meta:
@@ -99,6 +100,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'phone_number',
             'bio',
             'avatar',
+            'profile_photo',
+            'profile_photo_url',
 
             'is_provider',
             'is_online',
@@ -129,6 +132,22 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def get_full_name(self, obj):
         return obj.user.get_full_name()
+
+    def get_avatar(self, obj):
+        if obj.profile_photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_photo.url)
+            return obj.profile_photo.url
+        return obj.avatar or ''
+
+    def get_profile_photo_url(self, obj):
+        if obj.profile_photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_photo.url)
+            return obj.profile_photo.url
+        return None
 
     def get_certificates(self, obj):
         certificates = ProviderCertificate.objects.filter(
@@ -166,11 +185,11 @@ class PublicProviderProfileSerializer(serializers.ModelSerializer):
     )
 
     full_name = serializers.SerializerMethodField()
-
+    avatar = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
+    active_talent = serializers.SerializerMethodField()
     certificates = serializers.SerializerMethodField()
-
     talents = serializers.SerializerMethodField()
-
     reviews = serializers.SerializerMethodField()
 
     class Meta:
@@ -194,6 +213,8 @@ class PublicProviderProfileSerializer(serializers.ModelSerializer):
             'average_rating',
             'total_reviews',
 
+            'location',
+            'active_talent',
             'talents',
             'certificates',
             'reviews',
@@ -207,12 +228,31 @@ class PublicProviderProfileSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         return obj.user.get_full_name()
 
+    def get_avatar(self, obj):
+        if obj.profile_photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_photo.url)
+            return obj.profile_photo.url
+        return obj.avatar or ''
+
+    def get_location(self, obj):
+        if hasattr(obj.user, 'location'):
+            from apps.locations.serializers import UserLocationSerializer
+            return UserLocationSerializer(obj.user.location).data
+        return None
+
+    def get_active_talent(self, obj):
+        from apps.services.serializers import TalentSerializer
+        active = obj.user.talents.filter(is_active=True).first()
+        if active:
+            return TalentSerializer(active, context=self.context).data
+        return None
+
     def get_talents(self, obj):
         from apps.services.serializers import TalentSerializer
 
-        talents = obj.user.talents.filter(
-            is_active=True
-        )
+        talents = obj.user.talents.all()
 
         return TalentSerializer(
             talents,
@@ -238,7 +278,7 @@ class PublicProviderProfileSerializer(serializers.ModelSerializer):
         reviews = Review.objects.filter(
             provider=obj.user
         ).select_related(
-            'customer'
+            'customer', 'customer__profile', 'booking', 'booking__talent', 'booking__category'
         )
 
         return ReviewSerializer(

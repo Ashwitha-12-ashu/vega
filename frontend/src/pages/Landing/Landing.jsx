@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 
 import { useLocation } from '../../context/LocationContext';
+import { useAuth } from '../../context/AuthContext';
 import './Landing.css';
 
 const services = [
@@ -93,10 +94,17 @@ function ServiceIcon({ icon: Icon }) {
 export default function Landing() {
   const navigate = useNavigate();
   const { coordinates } = useLocation();
+  const { isAuthenticated, loading } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showAdditionalServices, setShowAdditionalServices] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      navigate('/home', { replace: true });
+    }
+  }, [isAuthenticated, loading, navigate]);
 
   useEffect(() => {
     const handleScroll = () => {

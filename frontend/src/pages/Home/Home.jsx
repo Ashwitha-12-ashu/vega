@@ -27,41 +27,6 @@ import { talentService } from "../../services/talentService";
 
 import "./Home.css";
 
-const professionals = [
-  {
-    id: 1,
-    name: "Arun Electricals",
-    profession: "Electrician",
-    rating: 4.9,
-    reviews: 128,
-    price: "₹300",
-    distance: "1.2 km",
-    image:
-      "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&w=700&q=85",
-  },
-  {
-    id: 2,
-    name: "Vijay Home Care",
-    profession: "Home Maintenance",
-    rating: 4.8,
-    reviews: 96,
-    price: "₹350",
-    distance: "1.8 km",
-    image:
-      "https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=700&q=85",
-  },
-  {
-    id: 3,
-    name: "Fresh & Clean",
-    profession: "Home Cleaning",
-    rating: 4.7,
-    reviews: 84,
-    price: "₹250",
-    distance: "2.1 km",
-    image:
-      "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=700&q=85",
-  },
-];
 
 const defaultCategories = [
   {
@@ -115,12 +80,13 @@ function Home() {
 
   const [categories, setCategories] = useState([]);
   const [providers, setProviders] = useState([]);
+  const [diagnostics, setDiagnostics] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationMessage, setLocationMessage] = useState(
-    "Showing professionals near your current location"
+    "Showing verified professionals in Ongole, Andhra Pradesh"
   );
 
   /* --------------------------------
@@ -131,9 +97,7 @@ function Home() {
     const loadCategories = async () => {
       try {
         const data = await talentService.getCategories();
-
         const results = data?.results || data || [];
-
         setCategories(Array.isArray(results) ? results : []);
       } catch (error) {
         console.error("Failed to load categories:", error);
@@ -147,12 +111,36 @@ function Home() {
      LOAD NEARBY PROVIDERS
   -------------------------------- */
 
-  useEffect(() => {
-    if (!coordinates?.lat || !coordinates?.lng) {
-      setProviders([]);
-      return;
-    }
+  const fetchProviders = async () => {
+    setLoading(true);
 
+    try {
+      const queryParams = {
+        radius: radius || 15,
+        category: selectedCategory,
+        search: searchQuery,
+      };
+
+      if (coordinates?.lat && coordinates?.lng) {
+        queryParams.lat = coordinates.lat;
+        queryParams.lng = coordinates.lng;
+      }
+
+      const data = await locationService.getNearbyProviders(queryParams);
+
+      const results = data?.results || data || [];
+      setProviders(Array.isArray(results) ? results : []);
+      setDiagnostics(data?.diagnostics || null);
+    } catch (error) {
+      console.error("Failed to fetch providers:", error);
+      setProviders([]);
+      setDiagnostics(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchProviders();
   }, [
     coordinates?.lat,
@@ -161,103 +149,28 @@ function Home() {
     selectedCategory,
   ]);
 
-  const fetchProviders = async () => {
-    if (!coordinates?.lat || !coordinates?.lng) {
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const data = await locationService.getNearbyProviders({
-        lat: coordinates.lat,
-        lng: coordinates.lng,
-        radius: radius,
-        category: selectedCategory,
-        search: searchQuery,
-      });
-
-      const results = data?.results || data || [];
-
-      setProviders(Array.isArray(results) ? results : []);
-    } catch (error) {
-      console.error("Failed to fetch providers:", error);
-      setProviders([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   /* --------------------------------
      LOCATION
   -------------------------------- */
 
   const handleUseLocation = () => {
-    if (!navigator.geolocation) {
-      setLocationMessage("Location is not supported by your browser.");
-      return;
+    if (locationContext?.requestBrowserLocation) {
+      locationContext.requestBrowserLocation();
     }
-
-    setLocationLoading(true);
-    setLocationMessage("Detecting your location...");
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-
-        setLocationMessage("Your location has been detected.");
-
-        /*
-         * LocationContext is responsible for storing
-         * the actual coordinates.
-         *
-         * If your existing LocationContext already
-         * listens to browser geolocation, refreshing
-         * will cause the nearby providers to update.
-         */
-
-        try {
-          if (locationContext?.setCoordinates) {
-            locationContext.setCoordinates({
-              lat,
-              lng,
-            });
-          }
-        } catch (error) {
-          console.log("Location context update skipped.");
-        }
-
-        setLocationLoading(false);
-      },
-      () => {
-        setLocationMessage(
-          "Unable to detect your location. Please allow location access."
-        );
-
-        setLocationLoading(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000,
-      }
-    );
   };
 
   /* --------------------------------
      SEARCH
   -------------------------------- */
 
-  const handleSearch = async (event) => {
+  const handleSearch = (event) => {
     event.preventDefault();
-
-    if (!searchQuery.trim()) {
-      fetchProviders();
-      return;
+    const query = searchQuery.trim();
+    if (query) {
+      navigate(`/nearby?search=${encodeURIComponent(query)}`);
+    } else {
+      navigate('/nearby');
     }
-
-    await fetchProviders();
   };
 
   /* --------------------------------
@@ -265,10 +178,11 @@ function Home() {
   -------------------------------- */
 
   const handleCategory = (categoryName) => {
-    const newCategory =
-      selectedCategory === categoryName ? "" : categoryName;
-
-    setSelectedCategory(newCategory);
+    if (categoryName) {
+      navigate(`/nearby?category=${encodeURIComponent(categoryName)}`);
+    } else {
+      navigate('/nearby');
+    }
   };
 
   /* --------------------------------
@@ -302,8 +216,104 @@ function Home() {
         }))
       : defaultCategories;
 
-  const displayProviders =
-    providers.length > 0 ? providers.slice(0, 6) : professionals;
+  const displayProviders = providers;
+
+  const renderEmptyState = () => {
+    const reason = diagnostics?.empty_reason;
+
+    if (reason === 'NO_LOCATION' || (!coordinates?.lat && !loading)) {
+      return (
+        <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', background: '#f0fdf4', borderRadius: '1.25rem', border: '1px solid #bbf7d0', margin: '1rem 0' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#dcfce7', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+            <MapPin size={26} />
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#14532d', marginBottom: '0.5rem' }}>
+            Enable Location to Find Nearby Providers
+          </h3>
+          <p style={{ color: '#166534', fontSize: '0.9rem', maxWidth: '480px', margin: '0 auto 1.25rem' }}>
+            VEGA uses your current GPS location to find verified nearby service providers.
+          </p>
+          <button
+            onClick={() => locationContext?.requestBrowserLocation && locationContext.requestBrowserLocation()}
+            className="btn btn-primary btn-sm"
+          >
+            <LocateFixed size={15} /> Enable GPS Location
+          </button>
+        </div>
+      );
+    }
+
+    if (reason === 'NO_PROVIDERS_FOR_SERVICE') {
+      return (
+        <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', background: '#f8fafc', borderRadius: '1.25rem', border: '1px solid #e2e8f0', margin: '1rem 0' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+            <Search size={26} />
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
+            No Providers Found for "{selectedCategory || searchQuery}"
+          </h3>
+          <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '480px', margin: '0 auto 1.25rem' }}>
+            There are currently no registered professionals in Ongole for this service.
+          </p>
+          <button onClick={() => { setSelectedCategory(''); setSearchQuery(''); }} className="btn btn-primary btn-sm">
+            Explore Other Categories
+          </button>
+        </div>
+      );
+    }
+
+    if (reason === 'NO_ACTIVE_PROVIDERS') {
+      return (
+        <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', background: '#fffbeb', borderRadius: '1.25rem', border: '1px solid #fef3c7', margin: '1rem 0' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+            <span style={{ width: '14px', height: '14px', borderRadius: '50%', backgroundColor: '#f59e0b' }} />
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#92400e', marginBottom: '0.5rem' }}>
+            Providers Exist but are Currently Offline
+          </h3>
+          <p style={{ color: '#b45309', fontSize: '0.9rem', maxWidth: '500px', margin: '0 auto 1.25rem' }}>
+            We have {diagnostics?.total_matching_service || 1} registered provider(s) for this service in Ongole, but none are currently online.
+          </p>
+          <button onClick={() => setSelectedCategory('')} className="btn btn-primary btn-sm">
+            View Available Services
+          </button>
+        </div>
+      );
+    }
+
+    if (reason === 'OUTSIDE_RADIUS') {
+      return (
+        <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', background: '#f0fdf4', borderRadius: '1.25rem', border: '1px solid #bbf7d0', margin: '1rem 0' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#dcfce7', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
+            <MapPin size={26} />
+          </div>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#166534', marginBottom: '0.5rem' }}>
+            Providers are Outside Your Radius
+          </h3>
+          <p style={{ color: '#15803d', fontSize: '0.9rem', maxWidth: '500px', margin: '0 auto 1.25rem' }}>
+            {diagnostics?.active_matching_service || diagnostics?.total_matching_service} provider(s) found in Ongole/Prakasam district, but beyond {radius} km.
+          </p>
+          <button onClick={() => navigate('/nearby')} className="btn btn-primary btn-sm">
+            Open Discovery & Expand Radius
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ textAlign: 'center', padding: '3.5rem 1.5rem', background: '#f8fafc', borderRadius: '1.25rem', border: '1px solid #e2e8f0', margin: '1rem 0' }}>
+        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a', marginBottom: '0.5rem' }}>
+          No professionals currently available
+        </h3>
+        <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+          Try clearing filters or checking nearby areas around Ongole.
+        </p>
+        <button onClick={() => { setSelectedCategory(''); setSearchQuery(''); }} className="btn btn-primary btn-sm">
+          Reset Filters
+        </button>
+      </div>
+    );
+  };
 
   return (
     <main className="vega-home">
@@ -600,7 +610,7 @@ function Home() {
 
             </div>
 
-          ) : (
+          ) : displayProviders.length > 0 ? (
 
             <div className="professional-grid">
 
@@ -608,46 +618,52 @@ function Home() {
 
                 const providerName =
                   provider?.provider_name ||
-                  provider?.name ||
                   provider?.user?.full_name ||
                   provider?.user?.username ||
-                  professionals[index % professionals.length].name;
+                  "Verified Provider";
 
                 const profession =
+                  provider?.active_talent?.title ||
                   provider?.title ||
-                  provider?.profession ||
+                  provider?.active_talent?.category?.name ||
                   provider?.category?.name ||
-                  professionals[index % professionals.length].profession;
+                  "Local Service";
 
                 const rating =
+                  provider?.average_rating ||
                   provider?.provider_rating ||
-                  provider?.rating ||
-                  professionals[index % professionals.length].rating;
+                  5.0;
 
                 const reviews =
-                  provider?.provider_reviews_count ||
-                  provider?.reviews ||
-                  professionals[index % professionals.length].reviews;
+                  provider?.total_reviews ??
+                  provider?.provider_reviews_count ??
+                  0;
 
                 const price =
-                  provider?.price_per_hour
+                  provider?.active_talent?.price_per_hour
+                    ? `₹${provider.active_talent.price_per_hour}`
+                    : provider?.price_per_hour
                     ? `₹${provider.price_per_hour}`
-                    : professionals[index % professionals.length].price;
+                    : "₹300";
 
                 const distance =
-                  provider?.distance
+                  provider?.distance_km !== undefined
+                    ? `${provider.distance_km} km`
+                    : provider?.distance
                     ? `${provider.distance} km`
-                    : professionals[index % professionals.length].distance;
+                    : "Near you";
 
                 const image =
-                  provider?.provider_avatar ||
+                  provider?.profile_photo ||
                   provider?.avatar ||
-                  professionals[index % professionals.length].image;
+                  provider?.provider_avatar ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(providerName)}&background=0284c7&color=fff&size=120`;
 
-                const isOnline =
+                const isOnline = Boolean(
                   provider?.provider_is_online ??
                   provider?.is_online ??
-                  true;
+                  false
+                );
 
                 return (
 
@@ -665,10 +681,13 @@ function Home() {
                       <img
                         src={image}
                         alt={providerName}
+                        onError={(e) => {
+                          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(providerName)}&background=0284c7&color=fff&size=120`;
+                        }}
                       />
 
-                      <span className="online-badge">
-                        <span></span>
+                      <span className={`online-badge ${isOnline ? 'online' : 'offline'}`}>
+                        <span style={{ backgroundColor: isOnline ? '#22c55e' : '#94a3b8' }}></span>
                         {isOnline ? "Available" : "Offline"}
                       </span>
 
@@ -726,7 +745,7 @@ function Home() {
                           </strong>
 
                           <span>
-                            / visit
+                            / hr
                           </span>
 
                         </div>
@@ -737,7 +756,7 @@ function Home() {
                             handleBook(provider)
                           }
                         >
-                          View profile
+                          View Profile
                         </button>
 
                       </div>
@@ -751,6 +770,8 @@ function Home() {
 
             </div>
 
+          ) : (
+            renderEmptyState()
           )}
 
         </div>

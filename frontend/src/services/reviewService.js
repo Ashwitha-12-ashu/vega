@@ -6,8 +6,14 @@ export const reviewService = {
     return response.data;
   },
 
+  async createCustomerReview({ booking_id, rating, comment }) {
+    const response = await api.post('/reviews/customer/', { booking_id, rating, comment });
+    return response.data;
+  },
+
   async getProviderReviews(providerId) {
     const response = await api.get(`/providers/${providerId}/reviews/`);
     return response.data;
   },
 };
+

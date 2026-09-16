@@ -24,4 +24,15 @@ export const bookingService = {
     const response = await api.patch(`/bookings/${id}/status/`, { status });
     return response.data;
   },
+
+  async updateTrackingLocation(id, { latitude, longitude }) {
+    const response = await api.patch(`/bookings/${id}/location/`, { latitude, longitude });
+    return response.data;
+  },
+
+  async getBookingTracking(id) {
+    const response = await api.get(`/bookings/${id}/tracking/`);
+    return response.data;
+  },
 };
+

@@ -90,9 +90,9 @@ class VerifyOTPSerializer(serializers.Serializer):
 
 
 class ResetPasswordSerializer(serializers.Serializer):
-    """Serializer for resetting password and auto-authenticating."""
+    """Serializer for resetting password with verified reset token."""
     email = serializers.CharField(required=True)
-    otp = serializers.CharField(required=False, allow_blank=True)
+    reset_token = serializers.CharField(required=True)
     password = serializers.CharField(required=True, write_only=True, min_length=8)
     confirm_password = serializers.CharField(required=True, write_only=True)
 
@@ -110,4 +110,5 @@ class ResetPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError({"password": "Password must contain both letters and numbers."})
 
         return attrs
+
 

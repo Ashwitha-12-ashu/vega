@@ -20,7 +20,7 @@ const ResetPassword = () => {
   const location = useLocation();
 
   const stateEmail = location.state?.email || '';
-  const otp = location.state?.otp || '';
+  const resetToken = location.state?.reset_token || '';
 
   const [email, setEmail] = useState(stateEmail);
   const [password, setPassword] = useState('');
@@ -69,7 +69,7 @@ const ResetPassword = () => {
     try {
       await resetPassword({
         email: targetEmail,
-        otp,
+        reset_token: resetToken,
         password,
         confirm_password: confirmPassword,
       });
@@ -77,8 +77,14 @@ const ResetPassword = () => {
       setSuccess(true);
 
       setTimeout(() => {
-        navigate('/home', { replace: true });
-      }, 1200);
+        navigate('/login', {
+          state: {
+            email: targetEmail,
+            successMessage: 'Your password has been changed successfully! Please sign in with your new password.',
+          },
+          replace: true,
+        });
+      }, 1500);
 
     } catch (err) {
       setError(
@@ -93,6 +99,7 @@ const ResetPassword = () => {
   };
 
   if (success) {
+    const targetEmail = (email || stateEmail).trim();
     return (
       <div className="reset-page">
         <div className="reset-card success-card">
@@ -103,22 +110,55 @@ const ResetPassword = () => {
           <h1>Password updated!</h1>
 
           <p>
-            Your VEGA password has been reset successfully. You are now logged in!
+            Your VEGA password has been changed successfully. You can now sign in with your new password.
           </p>
 
           <button
             type="button"
             className="reset-button"
-            onClick={() => navigate('/home', { replace: true })}
+            onClick={() =>
+              navigate('/login', {
+                state: {
+                  email: targetEmail,
+                  successMessage: 'Your password has been changed successfully! Please sign in with your new password.',
+                },
+                replace: true,
+              })
+            }
             style={{ marginTop: '1.25rem' }}
           >
-            <span>Open VEGA Home</span>
+            <span>Proceed to Login</span>
             <ArrowRight size={18} />
           </button>
 
           <span className="redirect-message" style={{ marginTop: '1rem', display: 'block' }}>
-            Opening your dashboard...
+            Redirecting to login page...
           </span>
+        </div>
+      </div>
+    );
+  }
+
+
+  if (!stateEmail || !resetToken) {
+    return (
+      <div className="reset-page">
+        <div className="reset-card" style={{ textAlign: 'center' }}>
+          <div className="reset-icon" style={{ margin: '0 auto 20px', background: '#fef2f2', color: '#ef4444' }}>
+            <Lock size={28} />
+          </div>
+          <h1>Verification Required</h1>
+          <p style={{ marginTop: '12px', color: '#64748b', fontSize: '14px', lineHeight: '1.6' }}>
+            Please enter your registered email and verify the 6-digit code sent to your email before setting a new password.
+          </p>
+          <Link
+            to="/forgot-password"
+            className="reset-button"
+            style={{ textDecoration: 'none', marginTop: '24px', display: 'flex' }}
+          >
+            <span>Go to Email Verification</span>
+            <ArrowRight size={18} />
+          </Link>
         </div>
       </div>
     );
@@ -144,7 +184,6 @@ const ResetPassword = () => {
           )}
         </div>
 
-
         {error && (
           <div className="reset-error">
             {error}
@@ -153,22 +192,6 @@ const ResetPassword = () => {
 
         <form onSubmit={handleSubmit}>
 
-          {/* EMAIL (if not passed from previous step) */}
-          {!stateEmail && (
-            <div className="reset-input-group">
-              <label>Email or Username</label>
-              <div className="reset-input-wrapper">
-                <Mail size={18} />
-                <input
-                  type="text"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email or username"
-                  required
-                />
-              </div>
-            </div>
-          )}
 
           {/* NEW PASSWORD */}
 

@@ -1,12 +1,15 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+
 import OTPVerification from './pages/OTPVerification/OTPVerification';
 import ResetPassword from './pages/ResetPassword/ResetPassword';
 import ForgotPassword from './pages/ForgotPassword/ForgotPassword';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 
 import { ToastProvider } from './context/ToastContext';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { LocationProvider } from './context/LocationContext';
 import { ProtectedRoute } from './routes/ProtectedRoute';
+import { PublicRoute } from './routes/PublicRoute';
 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -23,6 +26,7 @@ import Profile from './pages/Profile/Profile';
 import BecomeProvider from './pages/BecomeProvider/BecomeProvider';
 import MyTalents from './pages/MyTalents/MyTalents';
 import Notifications from './pages/Notifications/Notifications';
+import ServiceDetails from './pages/ServiceDetails/ServiceDetails';
 import NotFound from './pages/NotFound/NotFound';
 
 import './index.css';
@@ -30,25 +34,31 @@ import './index.css';
 
 function AppRoutes() {
   const { pathname } = useLocation();
+  const { isAuthenticated, loading } = useAuth();
 
-  const isLandingPage = pathname === '/';
+  const isLandingPage = pathname === '/' && !isAuthenticated;
 
   return (
     <div className="app-container">
 
-      {/* Navbar should not appear on landing page */}
+      {/* Navbar appears everywhere except for unauthenticated landing page */}
       {!isLandingPage && <Navbar />}
 
       <main className="main-content">
 
         <Routes>
 
-          {/* Landing */}
+          {/* Landing / Root - Redirect to /home if authenticated */}
           <Route
             path="/"
-            element={<Landing />}
+            element={
+              !loading && isAuthenticated ? (
+                <Navigate to="/home" replace />
+              ) : (
+                <Landing />
+              )
+            }
           />
-
 
           {/* MAIN HOME PAGE */}
           <Route
@@ -60,50 +70,91 @@ function AppRoutes() {
             }
           />
 
-          {/* Keep old URL working */}
+          {/* Services / Explore Directory */}
           <Route
             path="/explore"
             element={
               <ProtectedRoute>
-                <Home />
+                <ServiceDetails />
               </ProtectedRoute>
             }
           />
 
-          {/* Authentication */}
+          <Route
+            path="/services"
+            element={
+              <ProtectedRoute>
+                <ServiceDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/bookings"
+            element={<Navigate to="/my-bookings" replace />}
+          />
+
+          {/* Authentication (Guest-only routes) */}
           <Route
             path="/login"
-            element={<Login />}
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
           />
 
           <Route
             path="/register"
-            element={<Register />}
+            element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            }
           />
 
           <Route
             path="/forgot-password"
-            element={<ForgotPassword />}
+            element={
+              <PublicRoute>
+                <ForgotPassword />
+              </PublicRoute>
+            }
           />
 
           <Route
             path="/otp-verification"
-            element={<OTPVerification />}
+            element={
+              <PublicRoute>
+                <OTPVerification />
+              </PublicRoute>
+            }
           />
           <Route
             path="/verify-otp"
-            element={<OTPVerification />}
+            element={
+              <PublicRoute>
+                <OTPVerification />
+              </PublicRoute>
+            }
           />
 
           <Route
             path="/reset-password"
-            element={<ResetPassword />}
+            element={
+              <PublicRoute>
+                <ResetPassword />
+              </PublicRoute>
+            }
           />
           <Route
             path="/change-password"
-            element={<ResetPassword />}
+            element={
+              <PublicRoute>
+                <ResetPassword />
+              </PublicRoute>
+            }
           />
-
 
           {/* Nearby Providers */}
           <Route

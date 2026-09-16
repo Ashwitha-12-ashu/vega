@@ -20,56 +20,50 @@ User = get_user_model()
 class ProfileView(APIView):
     """
     GET /api/profile/
-
     Retrieve current user's profile.
 
     PATCH /api/profile/
-
-    Update current user's profile.
+    Update current user's profile, including photo upload/removal.
     """
-
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-
-        profile, _ = UserProfile.objects.get_or_create(
-            user=request.user
-        )
-
-        serializer = UserProfileSerializer(
-            profile,
-            context={'request': request}
-        )
-
-        return Response(
-            serializer.data,
-            status=status.HTTP_200_OK
-        )
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        serializer = UserProfileSerializer(profile, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def patch(self, request):
-
-        profile, _ = UserProfile.objects.get_or_create(
-            user=request.user
-        )
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
 
         # Update basic User fields
         user_data = {}
-
         if 'first_name' in request.data:
             user_data['first_name'] = request.data['first_name']
-
         if 'last_name' in request.data:
             user_data['last_name'] = request.data['last_name']
-
         if 'email' in request.data:
             user_data['email'] = request.data['email']
 
         if user_data:
-
             for key, value in user_data.items():
                 setattr(request.user, key, value)
-
             request.user.save()
+
+        # Handle profile photo removal
+        if request.data.get('remove_photo') in ['true', True, '1', 'True']:
+            if profile.profile_photo:
+                profile.profile_photo.delete(save=False)
+            profile.profile_photo = None
+            profile.avatar = ''
+            profile.save()
+
+        # Handle file upload for profile_photo
+        if 'profile_photo' in request.FILES:
+            if profile.profile_photo:
+                profile.profile_photo.delete(save=False)
+            profile.profile_photo = request.FILES['profile_photo']
+            profile.avatar = ''
+            profile.save()
 
         serializer = UserProfileSerializer(
             profile,
@@ -79,18 +73,13 @@ class ProfileView(APIView):
         )
 
         if serializer.is_valid():
-
             serializer.save()
-
             return Response(
-                serializer.data,
+                UserProfileSerializer(profile, context={'request': request}).data,
                 status=status.HTTP_200_OK
             )
 
-        return Response(
-            serializer.errors,
-            status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class EnableProviderView(APIView):

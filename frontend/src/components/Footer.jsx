@@ -1,8 +1,21 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Sparkles, Shield, MapPin, Heart } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Footer = () => {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  const handleLogoClick = (e) => {
+    if (location.pathname === '/home') {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const homeTarget = isAuthenticated ? '/home' : '/';
+
   return (
     <footer
       style={{
@@ -25,7 +38,8 @@ const Footer = () => {
           {/* Brand Col */}
           <div>
             <Link
-              to="/"
+              to={homeTarget}
+              onClick={handleLogoClick}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

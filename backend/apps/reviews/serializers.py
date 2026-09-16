@@ -29,12 +29,18 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     def get_customer_avatar(self, obj):
         if hasattr(obj.customer, 'profile'):
-            return obj.customer.profile.avatar
+            profile = obj.customer.profile
+            if profile.profile_photo:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(profile.profile_photo.url)
+                return profile.profile_photo.url
+            return profile.avatar or ''
         return ''
 
 
 class CreateReviewSerializer(serializers.ModelSerializer):
-    """Serializer for submitting a new review."""
+    """Serializer for customer submitting a new review."""
     booking_id = serializers.PrimaryKeyRelatedField(
         queryset=Booking.objects.all(),
         source='booking'
@@ -43,3 +49,13 @@ class CreateReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ['booking_id', 'rating', 'comment']
+
+
+class CreateCustomerReviewSerializer(serializers.Serializer):
+    """Serializer for provider submitting feedback on customer."""
+    booking_id = serializers.PrimaryKeyRelatedField(
+        queryset=Booking.objects.all(),
+        source='booking'
+    )
+    rating = serializers.IntegerField(min_value=1, max_value=5)
+    comment = serializers.CharField(required=False, allow_blank=True, default='')

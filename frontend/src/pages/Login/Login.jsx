@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   MapPin,
   Users,
+  CheckCircle2,
 } from 'lucide-react';
 import './Login.css';
 
@@ -21,11 +22,14 @@ const Login = () => {
   const location = useLocation();
 
   const from = location.state?.from?.pathname || '/home';
+  const initialEmail = location.state?.email || '';
+  const successMessage = location.state?.successMessage || '';
 
   const [formData, setFormData] = useState({
-    username: '',
+    username: initialEmail,
     password: '',
   });
+
 
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -189,6 +193,28 @@ const Login = () => {
             </div>
 
 
+            {/* Success Message Banner */}
+            {successMessage && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '13px 16px',
+                marginBottom: '20px',
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                borderRadius: '12px',
+                color: '#15803d',
+                fontSize: '13px',
+                fontWeight: '500',
+                lineHeight: '1.5',
+                animation: 'loginFadeIn 0.3s ease-out'
+              }}>
+                <CheckCircle2 size={18} style={{ color: '#16a34a', flexShrink: 0 }} />
+                <span>{successMessage}</span>
+              </div>
+            )}
+
             {/* Error */}
 
             {error && (
@@ -197,6 +223,7 @@ const Login = () => {
                 <span>{error}</span>
               </div>
             )}
+
 
 
             {/* Login Form */}

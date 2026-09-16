@@ -7,7 +7,15 @@ export const profileService = {
   },
 
   async updateProfile(profileData) {
-    const response = await api.patch('/profile/', profileData);
+    const isFormData = profileData instanceof FormData;
+    const response = await api.patch('/profile/', profileData, {
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : {},
+    });
+    return response.data;
+  },
+
+  async removeProfilePhoto() {
+    const response = await api.patch('/profile/', { remove_photo: true });
     return response.data;
   },
 

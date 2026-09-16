@@ -1,7 +1,12 @@
+from datetime import timedelta
+import re
 from django.test import TestCase
 from django.contrib.auth import get_user_model
+from django.core import mail
+from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
+from .models import EmailOTP
 
 User = get_user_model()
 
@@ -90,27 +95,53 @@ class AccountsAuthTests(TestCase):
         # 1. Request forgot password OTP
         forgot_res = self.client.post('/api/auth/forgot-password/', {'email': 'alex@example.com'}, format='json')
         self.assertEqual(forgot_res.status_code, status.HTTP_200_OK)
-        self.assertIn('otp_dev', forgot_res.data)
-        otp = forgot_res.data['otp_dev']
+        self.assertNotIn('otp', forgot_res.data)  # Ensure OTP is not exposed in API response
 
-        # 2. Verify OTP
-        verify_res = self.client.post('/api/auth/verify-otp/', {'email': 'alex@example.com', 'otp': otp}, format='json')
+        # Verify email was sent via Django outbox
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('alex@example.com', mail.outbox[0].to)
+        match = re.search(r'\b\d{6}\b', mail.outbox[0].body)
+        self.assertIsNotNone(match)
+        raw_otp = match.group(0)
+
+        # Verify OTP is stored as a 64-character SHA-256 hash
+        otp_record = EmailOTP.objects.filter(user=user, purpose=EmailOTP.PASSWORD_RESET).latest('created_at')
+        self.assertEqual(len(otp_record.otp), 64)
+        self.assertNotEqual(otp_record.otp, raw_otp)
+        self.assertFalse(otp_record.is_verified)
+
+        # 2. Test invalid OTP verification
+        invalid_res = self.client.post('/api/auth/verify-otp/', {'email': 'alex@example.com', 'otp': '000000'}, format='json')
+        self.assertEqual(invalid_res.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 3. Verify valid OTP
+        verify_res = self.client.post('/api/auth/verify-otp/', {'email': 'alex@example.com', 'otp': raw_otp}, format='json')
         self.assertEqual(verify_res.status_code, status.HTTP_200_OK)
         self.assertTrue(verify_res.data['valid'])
+        self.assertIn('reset_token', verify_res.data)
+        reset_token = verify_res.data['reset_token']
 
-        # 3. Reset password & auto login
+        # 4. Reset password with reset_token
         reset_res = self.client.post('/api/auth/reset-password/', {
             'email': 'alex@example.com',
-            'otp': otp,
+            'reset_token': reset_token,
             'password': 'NewSecurePassword123!',
             'confirm_password': 'NewSecurePassword123!'
         }, format='json')
         self.assertEqual(reset_res.status_code, status.HTTP_200_OK)
-        self.assertIn('tokens', reset_res.data)
-        self.assertIn('access', reset_res.data['tokens'])
-        self.assertEqual(reset_res.data['user']['username'], 'alex_reset')
+        self.assertTrue(reset_res.data.get('success'))
 
-        # 4. Verify login works with new password
-        login_res = self.client.post(self.login_url, {'username': 'alex_reset', 'password': 'NewSecurePassword123!'}, format='json')
+        # Verify OTP/reset_token record was deleted after successful reset
+        self.assertFalse(EmailOTP.objects.filter(user=user, purpose=EmailOTP.PASSWORD_RESET).exists())
+
+        # 5. Verify login works with new password
+        login_res = self.client.post(self.login_url, {'username': 'alex@example.com', 'password': 'NewSecurePassword123!'}, format='json')
         self.assertEqual(login_res.status_code, status.HTTP_200_OK)
+        self.assertIn('tokens', login_res.data)
+
+        # 6. Verify old password fails
+        old_login_res = self.client.post(self.login_url, {'username': 'alex@example.com', 'password': 'OldPassword123!'}, format='json')
+        self.assertEqual(old_login_res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
 

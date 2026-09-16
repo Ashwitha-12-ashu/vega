@@ -5,7 +5,13 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from .models import Booking, BookingStatus
-from .serializers import BookingSerializer, CreateBookingSerializer, UpdateBookingStatusSerializer
+from django.utils import timezone
+from .serializers import (
+    BookingSerializer,
+    CreateBookingSerializer,
+    UpdateBookingStatusSerializer,
+    UpdateBookingLocationSerializer,
+)
 from apps.services.models import Talent
 from apps.notifications.models import Notification
 
@@ -29,7 +35,10 @@ class BookingListCreateView(APIView):
             qs = Booking.objects.filter(models.Q(customer=request.user) | models.Q(provider=request.user))
 
         if status_filter:
-            qs = qs.filter(status=status_filter)
+            if status_filter == 'COMPLETED':
+                qs = qs.filter(status__in=[BookingStatus.COMPLETED, BookingStatus.RATING_PENDING, BookingStatus.CLOSED])
+            else:
+                qs = qs.filter(status=status_filter)
 
         qs = qs.select_related('customer', 'provider', 'talent', 'category', 'customer__profile', 'provider__profile')
         serializer = BookingSerializer(qs, many=True, context={'request': request})
@@ -45,7 +54,7 @@ class BookingListCreateView(APIView):
         with transaction.atomic():
             # Lock talent and provider row to ensure concurrency safety
             try:
-                talent = Talent.objects.select_for_update().select_related('user', 'user__profile').get(id=talent_id)
+                talent = Talent.objects.select_for_update().get(id=talent_id)
             except Talent.DoesNotExist:
                 return Response({'error': 'The requested talent/service does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -74,13 +83,23 @@ class BookingListCreateView(APIView):
                 provider=provider,
                 scheduled_date=scheduled_date,
                 scheduled_time=scheduled_time,
-                status__in=[BookingStatus.PENDING, BookingStatus.ACCEPTED, BookingStatus.IN_PROGRESS]
+                status__in=[
+                    BookingStatus.PENDING,
+                    BookingStatus.ACCEPTED,
+                    BookingStatus.ON_THE_WAY,
+                    BookingStatus.ARRIVED,
+                    BookingStatus.IN_PROGRESS
+                ]
             ).exists()
 
             if existing_booking:
                 return Response({
                     'error': 'This provider already has a booking scheduled at this specific date and time.'
                 }, status=status.HTTP_409_CONFLICT)
+
+            # Initial provider coordinates if available
+            p_lat = provider.location.latitude if hasattr(provider, 'location') else None
+            p_lng = provider.location.longitude if hasattr(provider, 'location') else None
 
             # Create Booking
             booking = Booking.objects.create(
@@ -91,6 +110,9 @@ class BookingListCreateView(APIView):
                 location_address=serializer.validated_data['location_address'],
                 latitude=serializer.validated_data.get('latitude'),
                 longitude=serializer.validated_data.get('longitude'),
+                provider_latitude=p_lat,
+                provider_longitude=p_lng,
+                provider_location_updated_at=timezone.now() if p_lat else None,
                 scheduled_date=scheduled_date,
                 scheduled_time=scheduled_time,
                 price=talent.price_per_hour,
@@ -132,7 +154,7 @@ class BookingDetailView(APIView):
 
 class BookingStatusUpdateView(APIView):
     """
-    PATCH /api/bookings/<id>/status/ - Update status (Accept, Reject, Cancel, Start, Complete)
+    PATCH /api/bookings/<id>/status/ - Update status (Accept, Reject, On The Way, Arrived, In Progress, Complete, Close)
     """
     permission_classes = [permissions.IsAuthenticated]
 
@@ -150,7 +172,13 @@ class BookingStatusUpdateView(APIView):
             )
 
             try:
-                booking.transition_to(new_status, request.user)
+                # If provider completes service, move to RATING_PENDING
+                if new_status == BookingStatus.COMPLETED and request.user == booking.provider:
+                    target_status = BookingStatus.RATING_PENDING
+                else:
+                    target_status = new_status
+
+                booking.transition_to(target_status, request.user)
             except ValidationError as e:
                 return Response({'error': str(e.message if hasattr(e, 'message') else e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -161,6 +189,14 @@ class BookingStatusUpdateView(APIView):
                 BookingStatus.ACCEPTED: (
                     "Booking Accepted!",
                     f"Provider {booking.provider.full_name} has ACCEPTED your booking for '{booking.talent.title}'."
+                ),
+                BookingStatus.ON_THE_WAY: (
+                    "Provider On The Way!",
+                    f"{booking.provider.full_name} has started the journey and is on the way to your location."
+                ),
+                BookingStatus.ARRIVED: (
+                    "Provider Arrived!",
+                    f"{booking.provider.full_name} has arrived at your service location."
                 ),
                 BookingStatus.REJECTED: (
                     "Booking Declined",
@@ -174,22 +210,76 @@ class BookingStatusUpdateView(APIView):
                     "Service In Progress",
                     f"Provider {booking.provider.full_name} has STARTED the service '{booking.talent.title}'."
                 ),
-                BookingStatus.COMPLETED: (
-                    "Service Completed!",
-                    f"Your service '{booking.talent.title}' has been marked as COMPLETED. Please leave a review!"
+                BookingStatus.RATING_PENDING: (
+                    "Service Completed - Review Required",
+                    f"Your service '{booking.talent.title}' has been marked as COMPLETED. Please rate and review your experience!"
+                ),
+                BookingStatus.CLOSED: (
+                    "Booking Completed & Closed",
+                    f"Booking #{booking.id} is now complete. Thank you for using VEGA!"
                 ),
             }
 
-            if new_status in status_messages:
-                title, msg = status_messages[new_status]
+            if target_status in status_messages:
+                title, msg = status_messages[target_status]
                 Notification.objects.create(
                     recipient=recipient,
                     actor=request.user,
                     booking=booking,
                     title=title,
                     message=msg,
-                    notification_type=f'BOOKING_{new_status}'
+                    notification_type=f'BOOKING_{target_status}'
                 )
 
         response_serializer = BookingSerializer(booking, context={'request': request})
         return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+class BookingLocationUpdateView(APIView):
+    """
+    PATCH /api/bookings/<id>/location/ - Provider updates live location while on active booking
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, pk):
+        booking = get_object_or_404(Booking, pk=pk)
+
+        # Only the provider assigned to this booking can update tracking location
+        if booking.provider != request.user:
+            return Response({'error': 'Only the assigned provider can update tracking location.'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = UpdateBookingLocationSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        booking.provider_latitude = serializer.validated_data['latitude']
+        booking.provider_longitude = serializer.validated_data['longitude']
+        booking.provider_location_updated_at = timezone.now()
+        booking.save(update_fields=['provider_latitude', 'provider_longitude', 'provider_location_updated_at', 'updated_at'])
+
+        # Also update provider's general UserLocation if they have one
+        if hasattr(request.user, 'location'):
+            request.user.location.latitude = booking.provider_latitude
+            request.user.location.longitude = booking.provider_longitude
+            request.user.location.save(update_fields=['latitude', 'longitude', 'updated_at'])
+
+        response_serializer = BookingSerializer(booking, context={'request': request})
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+
+class BookingTrackingView(APIView):
+    """
+    GET /api/bookings/<id>/tracking/ - Get tracking details for customer or provider
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        booking = get_object_or_404(
+            Booking.objects.select_related('customer', 'provider', 'talent', 'category', 'customer__profile', 'provider__profile'),
+            pk=pk
+        )
+        if booking.customer != request.user and booking.provider != request.user and not request.user.is_staff:
+            return Response({'error': 'You do not have permission to view tracking for this booking.'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = BookingSerializer(booking, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)

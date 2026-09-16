@@ -38,10 +38,10 @@ const ForgotPassword = () => {
       navigate('/otp-verification', {
         state: {
           email: data.email || trimmedEmail,
-          devOtp: data.otp_dev,
           purpose: 'forgot-password',
         },
       });
+
     } catch (err) {
       setError(
         err.response?.data?.error ||

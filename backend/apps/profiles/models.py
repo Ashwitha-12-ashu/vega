@@ -39,6 +39,13 @@ class UserProfile(models.Model):
         default=''
     )
 
+    profile_photo = models.ImageField(
+        upload_to='profile_photos/',
+        blank=True,
+        null=True,
+        help_text='Uploaded user/provider profile photo'
+    )
+
     # Provider settings
     is_provider = models.BooleanField(
         default=False,

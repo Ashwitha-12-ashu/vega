@@ -22,9 +22,9 @@ function Navbar() {
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
-    localStorage.removeItem("token");
+    localStorage.removeItem("vega_access_token");
+    localStorage.removeItem("vega_refresh_token");
+    localStorage.removeItem("vega_user");
     navigate("/login");
   };
 

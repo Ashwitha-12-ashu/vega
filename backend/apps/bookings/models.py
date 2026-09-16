@@ -5,18 +5,22 @@ from apps.services.models import Talent, ServiceCategory
 
 
 class BookingStatus(models.TextChoices):
-    PENDING = 'PENDING', 'Pending'
-    ACCEPTED = 'ACCEPTED', 'Accepted'
-    REJECTED = 'REJECTED', 'Rejected'
+    PENDING = 'PENDING', 'Booking Requested'
+    ACCEPTED = 'ACCEPTED', 'Provider Accepted'
+    ON_THE_WAY = 'ON_THE_WAY', 'Provider On The Way'
+    ARRIVED = 'ARRIVED', 'Provider Arrived'
+    IN_PROGRESS = 'IN_PROGRESS', 'Service In Progress'
+    COMPLETED = 'COMPLETED', 'Service Completed'
+    RATING_PENDING = 'RATING_PENDING', 'Rating & Review Pending'
+    CLOSED = 'CLOSED', 'Completed & Closed'
     CANCELLED = 'CANCELLED', 'Cancelled'
-    IN_PROGRESS = 'IN_PROGRESS', 'In Progress'
-    COMPLETED = 'COMPLETED', 'Completed'
+    REJECTED = 'REJECTED', 'Rejected'
 
 
 class Booking(models.Model):
     """
     Booking record between a customer and a service provider.
-    Enforces a strict state machine on transitions.
+    Enforces a strict state machine on transitions and live tracking.
     """
     customer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -41,6 +45,15 @@ class Booking(models.Model):
     location_address = models.CharField(max_length=255)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
+
+    # Provider real-time tracking coordinates & last update
+    provider_latitude = models.FloatField(null=True, blank=True)
+    provider_longitude = models.FloatField(null=True, blank=True)
+    provider_location_updated_at = models.DateTimeField(null=True, blank=True)
+
+    # Review status flags
+    customer_reviewed = models.BooleanField(default=False)
+    provider_reviewed = models.BooleanField(default=False)
     
     scheduled_date = models.DateField()
     scheduled_time = models.TimeField()
@@ -48,7 +61,7 @@ class Booking(models.Model):
     notes = models.TextField(blank=True, default='')
     
     status = models.CharField(
-        max_length=20,
+        max_length=25,
         choices=BookingStatus.choices,
         default=BookingStatus.PENDING,
         db_index=True
@@ -75,7 +88,7 @@ class Booking(models.Model):
         """
         Validates if the status transition is permitted based on current state and actor.
         """
-        # Current transitions matrix
+        # Transitions matrix
         allowed_transitions = {
             BookingStatus.PENDING: {
                 BookingStatus.ACCEPTED: {'provider'},
@@ -83,15 +96,34 @@ class Booking(models.Model):
                 BookingStatus.CANCELLED: {'customer', 'provider'},
             },
             BookingStatus.ACCEPTED: {
+                BookingStatus.ON_THE_WAY: {'provider'},
+                BookingStatus.ARRIVED: {'provider'},
+                BookingStatus.IN_PROGRESS: {'provider'},
+                BookingStatus.CANCELLED: {'customer', 'provider'},
+            },
+            BookingStatus.ON_THE_WAY: {
+                BookingStatus.ARRIVED: {'provider'},
+                BookingStatus.IN_PROGRESS: {'provider'},
+                BookingStatus.CANCELLED: {'customer', 'provider'},
+            },
+            BookingStatus.ARRIVED: {
                 BookingStatus.IN_PROGRESS: {'provider'},
                 BookingStatus.CANCELLED: {'customer', 'provider'},
             },
             BookingStatus.IN_PROGRESS: {
                 BookingStatus.COMPLETED: {'provider'},
+                BookingStatus.RATING_PENDING: {'provider'},
             },
+            BookingStatus.COMPLETED: {
+                BookingStatus.RATING_PENDING: {'provider', 'customer', 'admin'},
+                BookingStatus.CLOSED: {'customer', 'admin'},
+            },
+            BookingStatus.RATING_PENDING: {
+                BookingStatus.CLOSED: {'customer', 'admin'},
+            },
+            BookingStatus.CLOSED: {},
             BookingStatus.REJECTED: {},
             BookingStatus.CANCELLED: {},
-            BookingStatus.COMPLETED: {},
         }
 
         roles_allowed = allowed_transitions.get(self.status, {}).get(new_status, set())
@@ -113,7 +145,7 @@ class Booking(models.Model):
 
     def transition_to(self, new_status, actor_user):
         """
-        Applies a state transition with validation and audit log/notification hooks.
+        Applies a state transition with validation.
         """
         allowed, reason = self.can_transition_to(new_status, actor_user)
         if not allowed:

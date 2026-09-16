@@ -107,15 +107,42 @@ class BookingStateMachineAndConcurrencyTests(TestCase):
         self.assertEqual(res1.status_code, status.HTTP_200_OK)
         self.assertEqual(res1.data['status'], BookingStatus.ACCEPTED)
 
-        # 2. Provider Starts Service
+        # 2. Provider On The Way
+        res_otw = self.client.patch(f'/api/bookings/{booking.id}/status/', {'status': BookingStatus.ON_THE_WAY}, format='json')
+        self.assertEqual(res_otw.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_otw.data['status'], BookingStatus.ON_THE_WAY)
+
+        # 3. Provider Updates Location
+        res_loc = self.client.patch(f'/api/bookings/{booking.id}/location/', {'latitude': 15.5060, 'longitude': 80.0500}, format='json')
+        self.assertEqual(res_loc.status_code, status.HTTP_200_OK)
+
+        # 4. Provider Arrives
+        res_arr = self.client.patch(f'/api/bookings/{booking.id}/status/', {'status': BookingStatus.ARRIVED}, format='json')
+        self.assertEqual(res_arr.status_code, status.HTTP_200_OK)
+        self.assertEqual(res_arr.data['status'], BookingStatus.ARRIVED)
+
+        # 5. Provider Starts Service
         res2 = self.client.patch(f'/api/bookings/{booking.id}/status/', {'status': BookingStatus.IN_PROGRESS}, format='json')
         self.assertEqual(res2.status_code, status.HTTP_200_OK)
         self.assertEqual(res2.data['status'], BookingStatus.IN_PROGRESS)
 
-        # 3. Provider Completes Service
+        # 6. Provider Completes Service -> RATING_PENDING until customer reviews
         res3 = self.client.patch(f'/api/bookings/{booking.id}/status/', {'status': BookingStatus.COMPLETED}, format='json')
         self.assertEqual(res3.status_code, status.HTTP_200_OK)
-        self.assertEqual(res3.data['status'], BookingStatus.COMPLETED)
+        self.assertEqual(res3.data['status'], BookingStatus.RATING_PENDING)
+
+        # 7. Customer submits review -> Transitions to CLOSED
+        self.client.force_authenticate(user=self.customer)
+        res_rev = self.client.post('/api/reviews/', {
+            'booking_id': booking.id,
+            'rating': 5,
+            'comment': 'Outstanding work!'
+        }, format='json')
+        self.assertEqual(res_rev.status_code, status.HTTP_201_CREATED)
+
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, BookingStatus.CLOSED)
+        self.assertTrue(booking.customer_reviewed)
 
     def test_invalid_state_transitions_rejected(self):
         booking = Booking.objects.create(
@@ -127,10 +154,10 @@ class BookingStateMachineAndConcurrencyTests(TestCase):
             scheduled_date=date(2026, 9, 1),
             scheduled_time=time(10, 0),
             price=75.00,
-            status=BookingStatus.COMPLETED
+            status=BookingStatus.CLOSED
         )
 
-        # COMPLETED cannot transition to ACCEPTED
+        # CLOSED cannot transition to ACCEPTED
         self.client.force_authenticate(user=self.provider)
         res = self.client.patch(f'/api/bookings/{booking.id}/status/', {'status': BookingStatus.ACCEPTED}, format='json')
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)

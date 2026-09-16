@@ -1,8 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Compass, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const NotFound = () => {
+  const { isAuthenticated } = useAuth();
+  const homeTarget = isAuthenticated ? '/home' : '/';
+
   return (
     <div
       className="container"
@@ -26,7 +30,7 @@ const NotFound = () => {
       <p style={{ color: 'var(--text-muted)', maxWidth: '420px', marginBottom: '2rem' }}>
         The page you are looking for might have been moved, removed, or is temporarily unavailable.
       </p>
-      <Link to="/" className="btn btn-primary">
+      <Link to={homeTarget} className="btn btn-primary">
         <ArrowLeft size={16} /> Return to Homepage
       </Link>
     </div>

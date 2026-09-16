@@ -55,7 +55,13 @@ class TalentSerializer(serializers.ModelSerializer):
 
     def get_provider_avatar(self, obj):
         if hasattr(obj.user, 'profile'):
-            return obj.user.profile.avatar
+            profile = obj.user.profile
+            if profile.profile_photo:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(profile.profile_photo.url)
+                return profile.profile_photo.url
+            return profile.avatar or ''
         return ''
 
     def get_provider_rating(self, obj):

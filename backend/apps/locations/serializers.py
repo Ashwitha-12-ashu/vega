@@ -27,7 +27,7 @@ class NearbyProviderSerializer(serializers.Serializer):
     provider_name = serializers.CharField(source='user.full_name')
     username = serializers.CharField(source='user.username')
     email = serializers.CharField(source='user.email')
-    avatar = serializers.CharField(source='user.profile.avatar', default='')
+    avatar = serializers.SerializerMethodField()
     bio = serializers.CharField(source='user.profile.bio', default='')
     phone_number = serializers.CharField(source='user.profile.phone_number', default='')
     is_online = serializers.BooleanField(source='user.profile.is_online')
@@ -45,6 +45,17 @@ class NearbyProviderSerializer(serializers.Serializer):
     
     # Active Talent
     active_talent = serializers.SerializerMethodField()
+
+    def get_avatar(self, obj):
+        if hasattr(obj.user, 'profile'):
+            profile = obj.user.profile
+            if profile.profile_photo:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(profile.profile_photo.url)
+                return profile.profile_photo.url
+            return profile.avatar or ''
+        return ''
 
     def get_active_talent(self, obj):
         active = obj.user.talents.filter(is_active=True).first()

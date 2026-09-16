@@ -1,10 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import RatingStars from './RatingStars';
-import { MapPin, Briefcase, CalendarCheck } from 'lucide-react';
+import { MapPin, Briefcase, CalendarCheck, ShieldCheck } from 'lucide-react';
 
 const ProviderCard = ({ provider, onBookNow }) => {
   const activeTalent = provider.active_talent;
+  const avatarUrl = provider.avatar || provider.profile_photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(provider.provider_name || 'Provider')}&background=0284c7&color=fff&size=100`;
 
   return (
     <div
@@ -19,38 +20,48 @@ const ProviderCard = ({ provider, onBookNow }) => {
         padding: '1.5rem',
         background: '#ffffff',
         transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+        position: 'relative',
       }}
     >
       {/* Header: Avatar, Name, Online Status */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem', gap: '0.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-          <div
-            style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
-              color: '#ffffff',
-              fontWeight: 800,
-              fontSize: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '2px solid #ffffff',
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
-              flexShrink: 0,
-            }}
-          >
-            {provider.provider_name ? provider.provider_name[0].toUpperCase() : 'P'}
+          <div style={{ position: 'relative' }}>
+            <img
+              src={avatarUrl}
+              alt={provider.provider_name}
+              style={{
+                width: '52px',
+                height: '52px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid #ffffff',
+                boxShadow: '0 4px 10px rgba(0, 0, 0, 0.08)',
+                backgroundColor: '#f1f5f9',
+              }}
+              onError={(e) => {
+                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(provider.provider_name || 'Provider')}&background=0284c7&color=fff&size=100`;
+              }}
+            />
+            <span
+              className={`status-dot ${provider.is_online ? 'online pulse-beacon' : 'offline'}`}
+              style={{
+                position: 'absolute',
+                bottom: '1px',
+                right: '1px',
+                border: '2px solid #ffffff',
+              }}
+            />
           </div>
+
           <div>
-            <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--slate-900)', letterSpacing: '-0.01em' }}>
-              {provider.provider_name}
-            </h4>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <h4 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--slate-900)', letterSpacing: '-0.01em' }}>
+                {provider.provider_name}
+              </h4>
+              <ShieldCheck size={16} color="var(--primary-600)" title="Verified Provider" />
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '3px' }}>
-              <span
-                className={`status-dot ${provider.is_online ? 'online pulse-beacon' : 'offline'}`}
-              />
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: provider.is_online ? '#15803d' : 'var(--text-muted)' }}>
                 {provider.is_online ? 'Available Now' : 'Offline'}
               </span>
@@ -72,6 +83,7 @@ const ProviderCard = ({ provider, onBookNow }) => {
               fontSize: '0.75rem',
               fontWeight: 800,
               border: '1px solid var(--primary-200)',
+              whiteSpace: 'nowrap',
             }}
           >
             <MapPin size={13} />
@@ -95,8 +107,8 @@ const ProviderCard = ({ provider, onBookNow }) => {
             <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--primary-600)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {activeTalent.category?.name || 'Local Service'}
             </span>
-            <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--slate-900)' }}>
-              ${activeTalent.price_per_hour}/hr
+            <span style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--slate-900)' }}>
+              ₹{activeTalent.price_per_hour}/hr
             </span>
           </div>
 
@@ -129,7 +141,7 @@ const ProviderCard = ({ provider, onBookNow }) => {
       )}
 
       {/* Rating & Reviews */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '0.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
         <RatingStars
           rating={provider.average_rating}
           totalReviews={provider.total_reviews}

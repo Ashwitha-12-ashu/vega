@@ -76,8 +76,15 @@ class EmailOTP(models.Model):
     )
 
     otp = models.CharField(
-        max_length=6
+        max_length=128
     )
+
+    reset_token = models.CharField(
+        max_length=128,
+        blank=True,
+        null=True
+    )
+
 
     purpose = models.CharField(
         max_length=20,

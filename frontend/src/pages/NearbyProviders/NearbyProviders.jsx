@@ -11,7 +11,7 @@ import { MapPin, Sliders, Search, Star, Layers, Map as MapIcon, Grid } from 'luc
 const NearbyProviders = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { coordinates, radius, setRadius } = useLocation();
+  const { coordinates, radius, setRadius, requestBrowserLocation, isDetecting } = useLocation();
 
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || '');
@@ -20,28 +20,46 @@ const NearbyProviders = () => {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'map'
 
   const [providers, setProviders] = useState([]);
+  const [diagnostics, setDiagnostics] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     talentService.getCategories().then((data) => setCategories(data.results || data)).catch(() => {});
   }, []);
 
+  // Sync state whenever URL query params change
+  useEffect(() => {
+    const cat = searchParams.get('category') || '';
+    const query = searchParams.get('search') || '';
+    const rating = searchParams.get('min_rating') || '';
+    setSelectedCategory(cat);
+    setSearchQuery(query);
+    setMinRating(rating);
+  }, [searchParams]);
+
   const loadProviders = async () => {
-    if (!coordinates.lat || !coordinates.lng) return;
     setLoading(true);
 
     try {
-      const data = await locationService.getNearbyProviders({
-        lat: coordinates.lat,
-        lng: coordinates.lng,
+      const queryParams = {
         radius,
         category: selectedCategory,
         search: searchQuery,
         min_rating: minRating,
-      });
+      };
+
+      if (coordinates.lat && coordinates.lng) {
+        queryParams.lat = coordinates.lat;
+        queryParams.lng = coordinates.lng;
+      }
+
+      const data = await locationService.getNearbyProviders(queryParams);
       setProviders(data.results || []);
+      setDiagnostics(data.diagnostics || null);
     } catch (err) {
       console.error('Error fetching nearby providers:', err);
+      setProviders([]);
+      setDiagnostics(null);
     } finally {
       setLoading(false);
     }
@@ -53,7 +71,11 @@ const NearbyProviders = () => {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    loadProviders();
+    const params = {};
+    if (searchQuery.trim()) params.search = searchQuery.trim();
+    if (selectedCategory) params.category = selectedCategory;
+    if (minRating) params.min_rating = minRating;
+    setSearchParams(params);
   };
 
   const handleBookNow = (provider) => {
@@ -62,6 +84,111 @@ const NearbyProviders = () => {
     } else {
       navigate(`/providers/${provider.provider_id || provider.id}`);
     }
+  };
+
+  const renderEmptyState = () => {
+    const reason = diagnostics?.empty_reason;
+
+    if (reason === 'NO_LOCATION' || (!coordinates.lat && !loading)) {
+      return (
+        <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem', borderRadius: 'var(--radius-2xl)', backgroundColor: '#f0fdf4', borderColor: '#bbf7d0' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#dcfce7', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+            <MapPin size={28} />
+          </div>
+          <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#14532d', marginBottom: '0.5rem' }}>
+            Enable Location to Find Nearby Providers
+          </h3>
+          <p style={{ color: '#166534', fontSize: '0.95rem', maxWidth: '540px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
+            Location access is required to find providers near you. VEGA uses your current GPS location to find nearby service providers.
+          </p>
+          <button onClick={requestBrowserLocation} disabled={isDetecting} className="btn btn-primary">
+            <MapPin size={16} className={isDetecting ? 'spin-animation' : ''} />
+            {isDetecting ? 'Detecting GPS...' : 'Enable GPS Location'}
+          </button>
+        </div>
+      );
+    }
+
+    if (reason === 'NO_PROVIDERS_FOR_SERVICE') {
+      return (
+        <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem', borderRadius: 'var(--radius-2xl)' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+            <Search size={28} />
+          </div>
+          <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--slate-900)', marginBottom: '0.5rem' }}>
+            No Providers Found for "{selectedCategory || searchQuery}"
+          </h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '500px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
+            There are currently no registered professionals offering this specific service in our Ongole network.
+          </p>
+          <button onClick={() => { setSelectedCategory(''); setSearchQuery(''); }} className="btn btn-primary">
+            Browse All Available Services
+          </button>
+        </div>
+      );
+    }
+
+    if (reason === 'NO_ACTIVE_PROVIDERS') {
+      return (
+        <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem', borderRadius: 'var(--radius-2xl)', backgroundColor: '#fffbeb', borderColor: '#fef3c7' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+            <span style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#f59e0b' }} />
+          </div>
+          <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#92400e', marginBottom: '0.5rem' }}>
+            All Providers for this Service are Currently Offline
+          </h3>
+          <p style={{ color: '#b45309', fontSize: '0.95rem', maxWidth: '540px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
+            {diagnostics?.total_matching_service || 1} registered professional(s) exist in Ongole for this service, but they are not currently online to accept immediate bookings.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <button onClick={() => loadProviders()} className="btn btn-outline" style={{ borderColor: '#d97706', color: '#92400e' }}>
+              Refresh Status
+            </button>
+            <button onClick={() => setSelectedCategory('')} className="btn btn-primary">
+              View Other Active Services
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (reason === 'OUTSIDE_RADIUS') {
+      return (
+        <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem', borderRadius: 'var(--radius-2xl)' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: 'var(--primary-50)', color: 'var(--primary-600)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+            <MapPin size={28} />
+          </div>
+          <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--slate-900)', marginBottom: '0.5rem' }}>
+            Providers Found Outside Your Current Search Radius
+          </h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '540px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
+            We found {diagnostics?.active_matching_service || diagnostics?.total_matching_service} active provider(s) in Ongole/Prakasam district, but they are further than your selected {radius} km radius.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button onClick={() => setRadius(15)} className="btn btn-primary">
+              Expand Radius to 15 km
+            </button>
+            <button onClick={() => setRadius(25)} className="btn btn-outline">
+              Expand to 25 km
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem', borderRadius: 'var(--radius-2xl)' }}>
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--slate-800)', marginBottom: '0.5rem' }}>
+          No active providers found in your area
+        </h3>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9375rem', marginBottom: '1.5rem' }}>
+          Try expanding your search radius or selecting a different service category in Ongole.
+        </p>
+        <button onClick={() => { setSelectedCategory(''); setSearchQuery(''); setRadius(15); }} className="btn btn-primary">
+          Reset Filters & Expand Radius
+        </button>
+      </div>
+    );
   };
 
   return (
@@ -303,14 +430,7 @@ const NearbyProviders = () => {
           ))}
         </div>
       ) : (
-        <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--slate-800)', marginBottom: '0.5rem' }}>
-            No providers found matching your search
-          </h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9375rem' }}>
-            Try expanding your search radius or selecting a different service category.
-          </p>
-        </div>
+        renderEmptyState()
       )}
     </div>
   );

@@ -11,13 +11,14 @@ import { authService } from '../../services/authService';
 
 vi.mock('../../services/authService', () => ({
   authService: {
-    forgotPassword: vi.fn().mockResolvedValue({ message: 'Code sent', email: 'test@example.com', otp_dev: '123456' }),
+    forgotPassword: vi.fn().mockResolvedValue({ message: 'Code sent', email: 'test@example.com' }),
     verifyOTP: vi.fn().mockResolvedValue({ message: 'Verified', valid: true, email: 'test@example.com' }),
     resetPassword: vi.fn().mockResolvedValue({
       message: 'Reset success',
       user: { id: 1, username: 'testuser', email: 'test@example.com' },
       tokens: { access: 'fake-access', refresh: 'fake-refresh' },
     }),
+
     getCurrentUser: vi.fn().mockResolvedValue(null),
     login: vi.fn(),
     register: vi.fn(),
@@ -60,7 +61,7 @@ describe('Forgot Password, OTP, and Reset Password Flows', () => {
     render(
       <ToastProvider>
         <AuthProvider>
-          <MemoryRouter initialEntries={[{ pathname: '/reset-password', state: { email: 'test@example.com', otp: '123456' } }]}>
+          <MemoryRouter initialEntries={[{ pathname: '/reset-password', state: { email: 'test@example.com', reset_token: 'valid_reset_token' } }]}>
             <ResetPassword />
           </MemoryRouter>
         </AuthProvider>

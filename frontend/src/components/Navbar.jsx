@@ -74,11 +74,26 @@ const Navbar = () => {
     setUserDropdownOpen(false);
   };
 
+  const handleLogoClick = (e) => {
+    closeMenus();
+    if (location.pathname === '/home') {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const homeTarget = isAuthenticated ? '/home' : '/';
+
   return (
     <header className={`app-navbar-header ${scrolled ? 'scrolled' : ''}`}>
       <div className="container navbar-container">
         {/* Corner-Rounded Brand Heading & Capsule */}
-        <Link to="/" onClick={closeMenus} className="navbar-brand-pill" title="VEGA Home">
+        <Link
+          to={homeTarget}
+          onClick={handleLogoClick}
+          className="navbar-brand-pill"
+          title="VEGA Home"
+        >
           <div className="navbar-brand-logo">
             <img src="/vega-logo.png" alt="VEGA Logo" />
           </div>
@@ -235,9 +250,9 @@ const Navbar = () => {
       {mobileMenuOpen && (
         <div className="mobile-drawer open">
           <Link
-            to="/"
-            onClick={closeMenus}
-            className={`nav-pill-item ${location.pathname === '/' ? 'active' : ''}`}
+            to={homeTarget}
+            onClick={handleLogoClick}
+            className={`nav-pill-item ${location.pathname === '/home' || (!isAuthenticated && location.pathname === '/') ? 'active' : ''}`}
             style={{ width: '100%' }}
           >
             <HomeIcon size={16} />

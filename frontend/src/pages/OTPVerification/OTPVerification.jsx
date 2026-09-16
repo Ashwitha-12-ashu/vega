@@ -16,7 +16,6 @@ const OTPVerification = () => {
   const location = useLocation();
 
   const email = location.state?.email || '';
-  const initialDevOtp = location.state?.devOtp || '';
 
   const [otp, setOtp] = useState([
     '',
@@ -36,11 +35,8 @@ const OTPVerification = () => {
 
   useEffect(() => {
     inputRefs.current[0]?.focus();
-    if (initialDevOtp && initialDevOtp.length === 6) {
-      const digits = initialDevOtp.split('');
-      setOtp(digits);
-    }
-  }, [initialDevOtp]);
+  }, []);
+
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -113,14 +109,15 @@ const OTPVerification = () => {
     setError('');
 
     try {
+      let data = null;
       if (email) {
-        await authService.verifyOTP(email, otpValue);
+        data = await authService.verifyOTP(email, otpValue);
       }
 
       navigate('/reset-password', {
         state: {
           email,
-          otp: otpValue,
+          reset_token: data?.reset_token,
         },
       });
 
@@ -141,16 +138,14 @@ const OTPVerification = () => {
     setResendMsg('');
 
     try {
-      const data = await authService.forgotPassword(email);
-      if (data.otp_dev) {
-        setOtp(data.otp_dev.split(''));
-      }
-      setResendMsg('New verification code sent!');
+      await authService.forgotPassword(email);
+      setResendMsg('A new verification code has been emailed to you!');
       setTimer(60);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to resend OTP.');
     }
   };
+
 
 
   return (
