@@ -78,10 +78,10 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 # Database Configuration
-# Supports managed PostgreSQL (Neon / Supabase / AWS / Render) or SQLite fallback
+# Supports managed PostgreSQL (Neon / Supabase / AWS / Render) or automatic SQLite in /tmp for Vercel
 DATABASE_URL = os.getenv('DATABASE_URL') or os.getenv('POSTGRES_URL') or os.getenv('POSTGRES_PRISMA_URL')
-DB_ENGINE = os.getenv('DB_ENGINE', '')
-DB_NAME = os.getenv('DB_NAME', '')
+DB_HOST = os.getenv('DB_HOST', '').strip()
+IS_REMOTE_DB = bool(DATABASE_URL or (DB_HOST and DB_HOST not in ('localhost', '127.0.0.1', '')))
 
 if 'test' in sys.argv:
     DATABASES = {
@@ -90,43 +90,62 @@ if 'test' in sys.argv:
             'NAME': ':memory:',
         }
     }
-elif DATABASE_URL:
-    url = urlparse.urlparse(DATABASE_URL)
-    db_name = url.path[1:] if url.path else 'vega_db'
-    is_remote = 'localhost' not in (url.hostname or '') and '127.0.0.1' not in (url.hostname or '')
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': db_name,
-            'USER': url.username or 'postgres',
-            'PASSWORD': url.password or '',
-            'HOST': url.hostname or 'localhost',
-            'PORT': str(url.port or 5432),
-            'OPTIONS': {
-                'sslmode': os.getenv('DB_SSLMODE', 'require'),
-            } if is_remote else {},
+elif IS_REMOTE_DB:
+    if DATABASE_URL:
+        url = urlparse.urlparse(DATABASE_URL)
+        db_name = url.path[1:] if url.path else 'vega_db'
+        is_remote = 'localhost' not in (url.hostname or '') and '127.0.0.1' not in (url.hostname or '')
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': db_name,
+                'USER': url.username or 'postgres',
+                'PASSWORD': url.password or '',
+                'HOST': url.hostname or 'localhost',
+                'PORT': str(url.port or 5432),
+                'OPTIONS': {
+                    'sslmode': os.getenv('DB_SSLMODE', 'require'),
+                } if is_remote else {},
+            }
         }
-    }
-elif DB_ENGINE == 'django.contrib.gis.db.backends.postgis' or (DB_NAME and not DB_NAME.endswith('.sqlite3')) or (os.getenv('DB_HOST') and os.getenv('DB_HOST') not in ('localhost', '127.0.0.1')):
-    is_remote = os.getenv('DB_HOST') and os.getenv('DB_HOST') not in ('localhost', '127.0.0.1')
-    DATABASES = {
-        'default': {
-            'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
-            'NAME': os.getenv('DB_NAME', 'vega_db'),
-            'USER': os.getenv('DB_USER', 'vega_user'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'vega_password'),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
-            'PORT': os.getenv('DB_PORT', '5432'),
-            'OPTIONS': {
-                'sslmode': os.getenv('DB_SSLMODE', 'require'),
-            } if is_remote else {},
+    else:
+        DATABASES = {
+            'default': {
+                'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
+                'NAME': os.getenv('DB_NAME', 'vega_db'),
+                'USER': os.getenv('DB_USER', 'vega_user'),
+                'PASSWORD': os.getenv('DB_PASSWORD', 'vega_password'),
+                'HOST': DB_HOST,
+                'PORT': os.getenv('DB_PORT', '5432'),
+                'OPTIONS': {
+                    'sslmode': os.getenv('DB_SSLMODE', 'require'),
+                },
+            }
         }
-    }
 else:
+    # Serverless SQLite fallback with writable /tmp location
+    is_serverless = os.getenv('VERCEL') == '1' or not os.access(BASE_DIR, os.W_OK)
+    if is_serverless:
+        import shutil
+        tmp_db = Path('/tmp/vega_db.sqlite3')
+        seed_db = BASE_DIR / 'db_seed.sqlite3'
+        if not seed_db.exists():
+            seed_db = BASE_DIR / 'db.sqlite3'
+        
+        if not tmp_db.exists() and seed_db.exists():
+            try:
+                shutil.copyfile(seed_db, tmp_db)
+            except Exception:
+                pass
+        
+        db_path = tmp_db
+    else:
+        db_path = BASE_DIR / 'db.sqlite3'
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': db_path,
         }
     }
 
