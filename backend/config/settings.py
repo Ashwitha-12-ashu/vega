@@ -1,9 +1,6 @@
-"""
-Django settings for VEGA backend project.
-"""
-
 import os
 import sys
+import urllib.parse as urlparse
 from pathlib import Path
 from datetime import timedelta
 import dotenv
@@ -17,7 +14,11 @@ dotenv.load_dotenv(BASE_DIR / '.env', override=True)
 SECRET_KEY = os.getenv('SECRET_KEY', 'vega-dev-secret-key-super-secure-change-in-prod-2026')
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS_ENV = os.getenv('ALLOWED_HOSTS', '')
+if ALLOWED_HOSTS_ENV:
+    ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS_ENV.split(',') if h.strip()]
+else:
+    ALLOWED_HOSTS = ['*'] if DEBUG else ['.vercel.app', 'localhost', '127.0.0.1']
 
 # Application definition
 INSTALLED_APPS = [
@@ -77,7 +78,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 # Database Configuration
-# Supports PostgreSQL / PostGIS or SQLite fallback with spatial support
+# Supports managed PostgreSQL (Neon / Supabase / AWS / Render) or SQLite fallback
+DATABASE_URL = os.getenv('DATABASE_URL') or os.getenv('POSTGRES_URL') or os.getenv('POSTGRES_PRISMA_URL')
 DB_ENGINE = os.getenv('DB_ENGINE', '')
 DB_NAME = os.getenv('DB_NAME', '')
 
@@ -88,7 +90,25 @@ if 'test' in sys.argv:
             'NAME': ':memory:',
         }
     }
-elif DB_ENGINE == 'django.contrib.gis.db.backends.postgis' or (DB_NAME and not DB_NAME.endswith('.sqlite3')):
+elif DATABASE_URL:
+    url = urlparse.urlparse(DATABASE_URL)
+    db_name = url.path[1:] if url.path else 'vega_db'
+    is_remote = 'localhost' not in (url.hostname or '') and '127.0.0.1' not in (url.hostname or '')
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_name,
+            'USER': url.username or 'postgres',
+            'PASSWORD': url.password or '',
+            'HOST': url.hostname or 'localhost',
+            'PORT': str(url.port or 5432),
+            'OPTIONS': {
+                'sslmode': os.getenv('DB_SSLMODE', 'require'),
+            } if is_remote else {},
+        }
+    }
+elif DB_ENGINE == 'django.contrib.gis.db.backends.postgis' or (DB_NAME and not DB_NAME.endswith('.sqlite3')) or (os.getenv('DB_HOST') and os.getenv('DB_HOST') not in ('localhost', '127.0.0.1')):
+    is_remote = os.getenv('DB_HOST') and os.getenv('DB_HOST') not in ('localhost', '127.0.0.1')
     DATABASES = {
         'default': {
             'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
@@ -97,6 +117,9 @@ elif DB_ENGINE == 'django.contrib.gis.db.backends.postgis' or (DB_NAME and not D
             'PASSWORD': os.getenv('DB_PASSWORD', 'vega_password'),
             'HOST': os.getenv('DB_HOST', 'localhost'),
             'PORT': os.getenv('DB_PORT', '5432'),
+            'OPTIONS': {
+                'sslmode': os.getenv('DB_SSLMODE', 'require'),
+            } if is_remote else {},
         }
     }
 else:
@@ -145,14 +168,18 @@ REST_FRAMEWORK = {
 }
 
 # Simple JWT Configuration
+JWT_SECRET = os.getenv('JWT_SECRET', SECRET_KEY)
+JWT_ACCESS_EXPIRATION_HOURS = int(os.getenv('JWT_ACCESS_EXPIRATION_HOURS', '24'))
+JWT_REFRESH_EXPIRATION_DAYS = int(os.getenv('JWT_REFRESH_EXPIRATION_DAYS', '7'))
+
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=JWT_ACCESS_EXPIRATION_HOURS),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=JWT_REFRESH_EXPIRATION_DAYS),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
     'ALGORITHM': 'HS256',
-    'SIGNING_KEY': SECRET_KEY,
+    'SIGNING_KEY': JWT_SECRET,
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'USER_ID_FIELD': 'id',
@@ -160,14 +187,39 @@ SIMPLE_JWT = {
 }
 
 # CORS Configuration
-CORS_ALLOW_ALL_ORIGINS = True  # For dev; customizable via env
+CORS_ALLOW_ALL_ORIGINS = DEBUG and (os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True').lower() in ('true', '1'))
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+
+cors_origins_env = os.getenv('CORS_ALLOWED_ORIGINS', '')
+if cors_origins_env:
+    CORS_ALLOWED_ORIGINS = [orig.strip() for orig in cors_origins_env.split(',') if orig.strip()]
+else:
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://frontend-ashu-36ce.vercel.app",
+    ]
+
+# Support Vercel deployment preview domains
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.vercel\.app$",
 ]
+
+# Security Headers & Cookies in Production
+if not DEBUG:
+    SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() in ('true', '1')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    CSRF_TRUSTED_ORIGINS = [
+        orig for orig in CORS_ALLOWED_ORIGINS if orig.startswith('http')
+    ] + [
+        'https://*.vercel.app'
+    ]
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
