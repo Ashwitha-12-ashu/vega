@@ -293,119 +293,87 @@ const Register = () => {
                   </div>
                 </div>
               </div>
+        <form onSubmit={handleSubmit}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label">First Name</label>
+              <input
+                type="text"
+                name="first_name"
+                value={formData.first_name}
+                onChange={handleChange}
+                placeholder="Ashwitha"
+                className="form-input"
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Last Name</label>
+              <input
+                type="text"
+                name="last_name"
+                value={formData.last_name}
+                onChange={handleChange}
+                placeholder="kama"
+                className="form-input"
+                required
+              />
+            </div>
+          </div>
 
-              {/* Username */}
-              <div className="input-group">
-                <label htmlFor="username">Username</label>
-                <div className="input-wrapper">
-                  <User size={18} className="input-icon" />
-                  <input
-                    id="username"
-                    type="text"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    placeholder="Choose a unique username"
-                    autoComplete="username"
-                    required
-                  />
-                </div>
-              </div>
+          <div className="form-group">
+            <label className="form-label">Username</label>
+            <input
+              type="text"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              placeholder="janedoe"
+              className="form-input"
+              required
+            />
+          </div>
 
-              {/* Email */}
-              <div className="input-group">
-                <label htmlFor="email">Email Address</label>
-                <div className="input-wrapper">
-                  <Mail size={18} className="input-icon" />
-                  <input
-                    id="email"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="name@example.com"
-                    autoComplete="email"
-                    required
-                  />
-                </div>
-              </div>
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="jane@example.com"
+              className="form-input"
+              required
+            />
+          </div>
 
-              {/* Password Row */}
-              <div className="form-row">
-                {/* Password with Eye Toggle */}
-                <div className="input-group">
-                  <label htmlFor="password">Password</label>
-                  <div className="input-wrapper">
-                    <Lock size={18} className="input-icon" />
-                    <input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="Min. 8 characters"
-                      autoComplete="new-password"
-                      required
-                      minLength={8}
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle"
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      title={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Confirm Password with Eye Toggle */}
-                <div className="input-group">
-                  <label htmlFor="password_confirm">
-                    <span>Confirm Password</span>
-                    {formData.password_confirm && (
-                      <span
-                        className={`password-match-badge ${
-                          passwordStats.isMatch ? 'matched' : 'mismatched'
-                        }`}
-                      >
-                        {passwordStats.isMatch ? (
-                          <>
-                            <Check size={12} /> Matches
-                          </>
-                        ) : (
-                          <>
-                            <X size={12} /> Mismatch
-                          </>
-                        )}
-                      </span>
-                    )}
-                  </label>
-                  <div className="input-wrapper">
-                    <Lock size={18} className="input-icon" />
-                    <input
-                      id="password_confirm"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      name="password_confirm"
-                      value={formData.password_confirm}
-                      onChange={handleChange}
-                      placeholder="Repeat password"
-                      autoComplete="new-password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="password-toggle"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                      title={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
-                    >
-                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                </div>
-              </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="At least 8 chars"
+                className="form-input"
+                required
+                minLength={8}
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Confirm Password</label>
+              <input
+                type="password"
+                name="password_confirm"
+                value={formData.password_confirm}
+                onChange={handleChange}
+                placeholder="Repeat password"
+                className="form-input"
+                required
+              />
+            </div>
+          </div>
 
               {/* Password Strength & Live Helpers */}
               {formData.password && (
