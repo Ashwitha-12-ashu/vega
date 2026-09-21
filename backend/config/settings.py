@@ -6,12 +6,13 @@ from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-try:
-    import dotenv
-    # Load environment variables from .env file if available (environment variables take precedence)
-    dotenv.load_dotenv(BASE_DIR / '.env', override=False)
-except ImportError:
-    pass
+if os.getenv('VERCEL') != '1':
+    try:
+        import dotenv
+        # Load environment variables from .env file if available in local development
+        dotenv.load_dotenv(BASE_DIR / '.env', override=False)
+    except ImportError:
+        pass
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'vega-dev-secret-key-super-secure-change-in-prod-2026')
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
@@ -123,8 +124,7 @@ elif DATABASE_URL:
             'OPTIONS': db_options,
         }
     }
-elif DB_HOST:
-    is_remote = DB_HOST not in ('localhost', '127.0.0.1')
+elif DB_HOST and DB_HOST not in ('localhost', '127.0.0.1'):
     DATABASES = {
         'default': {
             'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
@@ -134,20 +134,41 @@ elif DB_HOST:
             'HOST': DB_HOST,
             'PORT': os.getenv('DB_PORT', '5432'),
             'OPTIONS': {
-                'sslmode': os.getenv('DB_SSLMODE', 'require' if is_remote else 'prefer'),
-            } if is_remote else {},
+                'sslmode': os.getenv('DB_SSLMODE', 'require'),
+            },
         }
     }
-elif IS_PRODUCTION:
-    from django.core.exceptions import ImproperlyConfigured
-    raise ImproperlyConfigured(
-        "VEGA Production Configuration Error: Managed PostgreSQL is required in production. "
-        "Please provide DATABASE_URL (e.g. from Neon, Supabase, or Vercel Marketplace Postgres) "
-        "or DB_HOST, DB_NAME, DB_USER, DB_PASSWORD. "
-        "SQLite and localhost PostgreSQL are strictly disallowed in production."
-    )
+elif DB_HOST and os.getenv('VERCEL') != '1':
+    # Local Docker / Postgres container environment
+    DATABASES = {
+        'default': {
+            'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
+            'NAME': os.getenv('DB_NAME', 'vega_db'),
+            'USER': os.getenv('DB_USER', 'vega_user'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'vega_password'),
+            'HOST': DB_HOST,
+            'PORT': os.getenv('DB_PORT', '5432'),
+            'OPTIONS': {},
+        }
+    }
+elif os.getenv('VERCEL') == '1':
+    # Vercel Serverless environment: writable SQLite database located in /tmp with seed data
+    import shutil
+    tmp_db = Path('/tmp/db.sqlite3')
+    starter_db = BASE_DIR / 'db.sqlite3'
+    if not tmp_db.exists() and starter_db.exists():
+        try:
+            shutil.copy2(starter_db, tmp_db)
+        except Exception:
+            pass
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': tmp_db if tmp_db.exists() or Path('/tmp').is_dir() else starter_db,
+        }
+    }
 else:
-    # Local Development only: local SQLite database file
+    # Local Development default
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',

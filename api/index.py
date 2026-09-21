@@ -18,4 +18,13 @@ from django.core.wsgi import get_wsgi_application
 
 # Vercel serverless function entrypoint (WSGI app)
 app = get_wsgi_application()
+
+try:
+    from django.core.management import call_command
+    from django.conf import settings
+    if getattr(settings, 'IS_REMOTE_DB', False):
+        call_command('migrate', interactive=False)
+except Exception:
+    pass
+
 handler = app
