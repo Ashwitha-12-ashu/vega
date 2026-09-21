@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Allow: /explore
+Allow: /services
+Disallow: /profile
+Disallow: /my-bookings
+Disallow: /notifications
+Disallow: /my-talents
+Disallow: /book/
+
+Sitemap: https://frontend-ashu-36ce.vercel.app/sitemap.xml

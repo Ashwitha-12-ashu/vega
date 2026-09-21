@@ -87,6 +87,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', api_root, name='api-root'),
     path('api/health/', health_check, name='api-health'),
+
+    # Endpoints with /api/ prefix
     path('api/auth/', include('apps.accounts.urls')),
     path('api/profile/', include('apps.profiles.urls')),
     path('api/', include('apps.profiles.urls')),  # for /api/provider/go-online/ and /api/providers/<id>/
@@ -95,6 +97,18 @@ urlpatterns = [
     path('api/', include('apps.bookings.urls')),
     path('api/', include('apps.reviews.urls')),
     path('api/', include('apps.notifications.urls')),
+
+    # Direct endpoints (in case WSGI gateway strips /api/ prefix)
+    path('auth/', include('apps.accounts.urls')),
+    path('profile/', include('apps.profiles.urls')),
+    path('provider/', include('apps.profiles.urls')),
+    path('providers/', include('apps.profiles.urls')),
+    path('categories/', include('apps.services.urls')),
+    path('talents/', include('apps.services.urls')),
+    path('location/', include('apps.locations.urls')),
+    path('bookings/', include('apps.bookings.urls')),
+    path('reviews/', include('apps.reviews.urls')),
+    path('notifications/', include('apps.notifications.urls')),
 ]
 
 if settings.DEBUG:
