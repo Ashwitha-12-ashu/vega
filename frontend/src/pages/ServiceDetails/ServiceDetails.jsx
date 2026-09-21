@@ -140,7 +140,7 @@ const ServiceDetails = () => {
         icon: Sparkles,
         bg: '#eef2ff',
         color: '#4f46e5',
-        desc: 'Professional verified local home services in Ongole',
+        desc: 'Professional verified local home services',
       }
     );
   };
@@ -158,7 +158,7 @@ const ServiceDetails = () => {
             Enable Location to View Nearby Providers
           </h3>
           <p style={{ color: '#166534', fontSize: '0.9rem', maxWidth: '500px', margin: '0 auto 1.25rem' }}>
-            VEGA uses your current device GPS coordinates to calculate real-time distance and match you with active Ongole professionals.
+            VEGA uses your current device GPS coordinates to calculate real-time distance and match you with active professionals.
           </p>
           <button onClick={requestBrowserLocation} disabled={isDetecting} className="btn btn-primary">
             <LocateFixed size={16} className={isDetecting ? 'spin-animation' : ''} />
@@ -178,7 +178,7 @@ const ServiceDetails = () => {
             No Providers Found for "{selectedCategory || searchQuery}"
           </h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '480px', margin: '0 auto 1.25rem' }}>
-            There are currently no registered professionals in Ongole for this service.
+            There are currently no registered professionals for this service in your area.
           </p>
           <button onClick={() => { setSelectedCategory(''); setSearchQuery(''); setSearchParams({}); }} className="btn btn-primary btn-sm">
             View All Available Services
@@ -197,7 +197,7 @@ const ServiceDetails = () => {
             Providers Exist but are Currently Offline
           </h3>
           <p style={{ color: '#b45309', fontSize: '0.9rem', maxWidth: '500px', margin: '0 auto 1.25rem' }}>
-            We found {diagnostics?.total_matching_service || 1} registered provider(s) for this service in Ongole, but none are currently online to accept immediate bookings.
+            We found {diagnostics?.total_matching_service || 1} registered provider(s) for this service, but none are currently online to accept immediate bookings.
           </p>
           <button onClick={() => { setSelectedCategory(''); setSearchParams({}); }} className="btn btn-primary btn-sm">
             Explore Other Active Services
@@ -230,7 +230,7 @@ const ServiceDetails = () => {
         </span>
         <h1 className="services-hero-title">Browse & Book Local Services</h1>
         <p className="services-hero-subtitle">
-          Find verified, background-checked professionals in Ongole ready to assist you on-demand.
+          Find verified, background-checked professionals ready to assist you on-demand.
         </p>
       </div>
 
@@ -311,7 +311,7 @@ const ServiceDetails = () => {
                 ? `Available ${selectedCategory.toUpperCase()} Providers`
                 : searchQuery
                 ? `Search Results for "${searchQuery}"`
-                : 'Top Available Providers in Ongole'}
+                : 'Top Available Providers'}
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
               Showing verified active professionals with real-time GPS proximity

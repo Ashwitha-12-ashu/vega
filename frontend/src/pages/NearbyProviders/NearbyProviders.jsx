@@ -119,7 +119,7 @@ const NearbyProviders = () => {
             No Providers Found for "{selectedCategory || searchQuery}"
           </h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '500px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
-            There are currently no registered professionals offering this specific service in our Ongole network.
+            There are currently no registered professionals offering this specific service matching your search.
           </p>
           <button onClick={() => { setSelectedCategory(''); setSearchQuery(''); }} className="btn btn-primary">
             Browse All Available Services
@@ -138,7 +138,7 @@ const NearbyProviders = () => {
             All Providers for this Service are Currently Offline
           </h3>
           <p style={{ color: '#b45309', fontSize: '0.95rem', maxWidth: '540px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
-            {diagnostics?.total_matching_service || 1} registered professional(s) exist in Ongole for this service, but they are not currently online to accept immediate bookings.
+            {diagnostics?.total_matching_service || 1} registered professional(s) offer this service, but they are not currently online to accept immediate bookings.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
             <button onClick={() => loadProviders()} className="btn btn-outline" style={{ borderColor: '#d97706', color: '#92400e' }}>
@@ -162,7 +162,7 @@ const NearbyProviders = () => {
             Providers Found Outside Your Current Search Radius
           </h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '540px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
-            We found {diagnostics?.active_matching_service || diagnostics?.total_matching_service} active provider(s) in Ongole/Prakasam district, but they are further than your selected {radius} km radius.
+            We found {diagnostics?.active_matching_service || diagnostics?.total_matching_service} active provider(s), but they are further than your selected {radius} km radius.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button onClick={() => setRadius(15)} className="btn btn-primary">
@@ -182,7 +182,7 @@ const NearbyProviders = () => {
           No active providers found in your area
         </h3>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9375rem', marginBottom: '1.5rem' }}>
-          Try expanding your search radius or selecting a different service category in Ongole.
+          Try expanding your search radius or selecting a different service category.
         </p>
         <button onClick={() => { setSelectedCategory(''); setSearchQuery(''); setRadius(15); }} className="btn btn-primary">
           Reset Filters & Expand Radius

@@ -3,13 +3,15 @@ import sys
 import urllib.parse as urlparse
 from pathlib import Path
 from datetime import timedelta
-import dotenv
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env file if available
-dotenv.load_dotenv(BASE_DIR / '.env', override=True)
+try:
+    import dotenv
+    # Load environment variables from .env file if available (environment variables take precedence)
+    dotenv.load_dotenv(BASE_DIR / '.env', override=False)
+except ImportError:
+    pass
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'vega-dev-secret-key-super-secure-change-in-prod-2026')
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
@@ -78,10 +80,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 # Database Configuration
-# Supports managed PostgreSQL (Neon / Supabase / AWS / Render) or automatic SQLite in /tmp for Vercel
+# Supports managed PostgreSQL (Neon / Supabase / AWS / Render / Vercel Postgres)
 DATABASE_URL = os.getenv('DATABASE_URL') or os.getenv('POSTGRES_URL') or os.getenv('POSTGRES_PRISMA_URL')
 DB_HOST = os.getenv('DB_HOST', '').strip()
 IS_REMOTE_DB = bool(DATABASE_URL or (DB_HOST and DB_HOST not in ('localhost', '127.0.0.1', '')))
+IS_PRODUCTION = (not DEBUG) or (os.getenv('VERCEL') == '1') or (os.getenv('ENVIRONMENT') == 'production')
 
 if 'test' in sys.argv:
     DATABASES = {
@@ -90,62 +93,65 @@ if 'test' in sys.argv:
             'NAME': ':memory:',
         }
     }
-elif IS_REMOTE_DB:
-    if DATABASE_URL:
-        url = urlparse.urlparse(DATABASE_URL)
-        db_name = url.path[1:] if url.path else 'vega_db'
-        is_remote = 'localhost' not in (url.hostname or '') and '127.0.0.1' not in (url.hostname or '')
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': db_name,
-                'USER': url.username or 'postgres',
-                'PASSWORD': url.password or '',
-                'HOST': url.hostname or 'localhost',
-                'PORT': str(url.port or 5432),
-                'OPTIONS': {
-                    'sslmode': os.getenv('DB_SSLMODE', 'require'),
-                } if is_remote else {},
-            }
-        }
-    else:
-        DATABASES = {
-            'default': {
-                'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
-                'NAME': os.getenv('DB_NAME', 'vega_db'),
-                'USER': os.getenv('DB_USER', 'vega_user'),
-                'PASSWORD': os.getenv('DB_PASSWORD', 'vega_password'),
-                'HOST': DB_HOST,
-                'PORT': os.getenv('DB_PORT', '5432'),
-                'OPTIONS': {
-                    'sslmode': os.getenv('DB_SSLMODE', 'require'),
-                },
-            }
-        }
-else:
-    # Serverless SQLite fallback with writable /tmp location
-    is_serverless = os.getenv('VERCEL') == '1' or not os.access(BASE_DIR, os.W_OK)
-    if is_serverless:
-        import shutil
-        tmp_db = Path('/tmp/vega_db.sqlite3')
-        seed_db = BASE_DIR / 'db_seed.sqlite3'
-        if not seed_db.exists():
-            seed_db = BASE_DIR / 'db.sqlite3'
-        
-        if not tmp_db.exists() and seed_db.exists():
-            try:
-                shutil.copyfile(seed_db, tmp_db)
-            except Exception:
-                pass
-        
-        db_path = tmp_db
-    else:
-        db_path = BASE_DIR / 'db.sqlite3'
+elif DATABASE_URL:
+    url = urlparse.urlparse(DATABASE_URL)
+    db_name = url.path[1:] if url.path else 'vega_db'
+    db_user = urlparse.unquote(url.username) if url.username else 'postgres'
+    db_password = urlparse.unquote(url.password) if url.password else ''
+    db_host = url.hostname or 'localhost'
+    db_port = str(url.port or 5432)
+    is_remote = 'localhost' not in db_host and '127.0.0.1' not in db_host
+
+    # Parse query parameters (e.g. ?sslmode=require&channel_binding=require)
+    query_params = dict(urlparse.parse_qsl(url.query))
+    sslmode = os.getenv('DB_SSLMODE', query_params.get('sslmode', 'require' if is_remote else 'prefer'))
+
+    db_options = {}
+    if is_remote:
+        db_options['sslmode'] = sslmode
+    if 'channel_binding' in query_params:
+        db_options['channel_binding'] = query_params['channel_binding']
 
     DATABASES = {
         'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_password,
+            'HOST': db_host,
+            'PORT': db_port,
+            'OPTIONS': db_options,
+        }
+    }
+elif DB_HOST:
+    is_remote = DB_HOST not in ('localhost', '127.0.0.1')
+    DATABASES = {
+        'default': {
+            'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
+            'NAME': os.getenv('DB_NAME', 'vega_db'),
+            'USER': os.getenv('DB_USER', 'vega_user'),
+            'PASSWORD': os.getenv('DB_PASSWORD', 'vega_password'),
+            'HOST': DB_HOST,
+            'PORT': os.getenv('DB_PORT', '5432'),
+            'OPTIONS': {
+                'sslmode': os.getenv('DB_SSLMODE', 'require' if is_remote else 'prefer'),
+            } if is_remote else {},
+        }
+    }
+elif IS_PRODUCTION:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        "VEGA Production Configuration Error: Managed PostgreSQL is required in production. "
+        "Please provide DATABASE_URL (e.g. from Neon, Supabase, or Vercel Marketplace Postgres) "
+        "or DB_HOST, DB_NAME, DB_USER, DB_PASSWORD. "
+        "SQLite and localhost PostgreSQL are strictly disallowed in production."
+    )
+else:
+    # Local Development only: local SQLite database file
+    DATABASES = {
+        'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': db_path,
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 
@@ -228,7 +234,11 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 
 # Security Headers & Cookies in Production
 if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() in ('true', '1')
+    SECURE_HSTS_SECONDS = int(os.getenv('SECURE_HSTS_SECONDS', '31536000'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True

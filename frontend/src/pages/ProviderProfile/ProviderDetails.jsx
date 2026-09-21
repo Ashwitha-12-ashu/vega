@@ -311,7 +311,7 @@ const ProviderDetails = () => {
                   <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--slate-100)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Clock size={16} color="var(--primary-600)" />
                   </div>
-                  <span>{activeTalent.availability_notes || 'Quick same-day response in Ongole'}</span>
+                  <span>{activeTalent.availability_notes || 'Quick same-day response'}</span>
                 </div>
               </div>
             </div>
@@ -341,7 +341,7 @@ const ProviderDetails = () => {
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
               <CheckCircle2 size={18} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <p style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--slate-900)' }}>Transparent Ongole Pricing</p>
+                <p style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--slate-900)' }}>Transparent Pricing</p>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>Direct hourly rates in INR with zero hidden markups.</p>
               </div>
             </div>
@@ -380,7 +380,7 @@ const ProviderDetails = () => {
                         {rev.customer_name}
                       </p>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        Verified Ongole Client • {new Date(rev.created_at).toLocaleDateString()}
+                        Verified Client • {new Date(rev.created_at).toLocaleDateString()}
                       </span>
                     </div>
                   </div>

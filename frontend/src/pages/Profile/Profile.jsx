@@ -291,9 +291,9 @@ const Profile = () => {
     setIsSavingLocation(true);
     try {
       await setManualLocation({
-        lat: coordinates?.lat || 15.5057,
-        lng: coordinates?.lng || 80.0499,
-        city: locationForm.city || 'Ongole',
+        lat: coordinates?.lat || 0.0,
+        lng: coordinates?.lng || 0.0,
+        city: locationForm.city || 'Custom Location',
         address: locationForm.address || '',
       });
       setIsEditingLocation(false);
@@ -760,7 +760,7 @@ const Profile = () => {
                 <div className="info-item-content">
                   <span className="info-item-label">Saved Location</span>
                   <span className="info-item-value">
-                    {coordinates?.city || 'Ongole'} {coordinates?.address ? `(${coordinates.address})` : ''}
+                    {coordinates?.city || 'Location not set'} {coordinates?.address ? `(${coordinates.address})` : ''}
                   </span>
                 </div>
               </div>
@@ -816,7 +816,7 @@ const Profile = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <strong style={{ fontSize: '1rem', color: 'var(--slate-900)' }}>
-                  {coordinates?.city || 'Ongole, Andhra Pradesh'}
+                  {coordinates?.city || 'Location not set'}
                 </strong>
                 {coordinates?.address && (
                   <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
@@ -875,7 +875,7 @@ const Profile = () => {
                   value={locationForm.city}
                   onChange={(e) => setLocationForm({ ...locationForm, city: e.target.value })}
                   className="form-input"
-                  placeholder="e.g. Ongole"
+                  placeholder="e.g. Your City"
                   required
                 />
               </div>
@@ -1199,7 +1199,7 @@ const Profile = () => {
                   Offer Services on VEGA
                 </h3>
                 <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Join verified Ongole professionals, set your own hourly pricing, and get booked directly.
+                  Join verified professionals, set your own hourly pricing, and get booked directly.
                 </p>
               </div>
             </div>

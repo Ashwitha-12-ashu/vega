@@ -84,13 +84,19 @@ class TalentCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating and updating Talents."""
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=ServiceCategory.objects.filter(is_active=True),
-        source='category'
+        source='category',
+        required=False
+    )
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=ServiceCategory.objects.filter(is_active=True),
+        required=False
     )
 
     class Meta:
         model = Talent
         fields = [
             'id',
+            'category',
             'category_id',
             'title',
             'description',
@@ -99,3 +105,8 @@ class TalentCreateUpdateSerializer(serializers.ModelSerializer):
             'availability_notes',
         ]
         read_only_fields = ['id']
+
+    def validate(self, attrs):
+        if not attrs.get('category'):
+            raise serializers.ValidationError({'category_id': 'Category is required.'})
+        return attrs

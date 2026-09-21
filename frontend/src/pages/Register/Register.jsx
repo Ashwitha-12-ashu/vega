@@ -255,191 +255,208 @@ const Register = () => {
               </div>
             )}
 
-            {/* Form */}
-            <form className="register-form" onSubmit={handleSubmit}>
-              {/* Name Row: First Name & Last Name */}
-              <div className="form-row">
+              {/* Form */}
+              <form className="register-form" onSubmit={handleSubmit}>
+                {/* Name Row: First Name & Last Name */}
+                <div className="form-row">
+                  <div className="input-group">
+                    <label htmlFor="first_name">First Name</label>
+                    <div className="input-wrapper">
+                      <User size={18} className="input-icon" />
+                      <input
+                        id="first_name"
+                        type="text"
+                        name="first_name"
+                        value={formData.first_name}
+                        onChange={handleChange}
+                        placeholder="e.g. Ashwitha"
+                        autoComplete="given-name"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="input-group">
+                    <label htmlFor="last_name">Last Name</label>
+                    <div className="input-wrapper">
+                      <User size={18} className="input-icon" />
+                      <input
+                        id="last_name"
+                        type="text"
+                        name="last_name"
+                        value={formData.last_name}
+                        onChange={handleChange}
+                        placeholder="e.g. Patel"
+                        autoComplete="family-name"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Username */}
                 <div className="input-group">
-                  <label htmlFor="first_name">First Name</label>
+                  <label htmlFor="username">Username</label>
                   <div className="input-wrapper">
                     <User size={18} className="input-icon" />
                     <input
-                      id="first_name"
+                      id="username"
                       type="text"
-                      name="first_name"
-                      value={formData.first_name}
+                      name="username"
+                      value={formData.username}
                       onChange={handleChange}
-                      placeholder="e.g. Ashwitha"
-                      autoComplete="given-name"
+                      placeholder="Choose a unique username"
+                      autoComplete="username"
                       required
                     />
                   </div>
                 </div>
 
+                {/* Email Address */}
                 <div className="input-group">
-                  <label htmlFor="last_name">Last Name</label>
+                  <label htmlFor="email">Email Address</label>
                   <div className="input-wrapper">
-                    <User size={18} className="input-icon" />
+                    <Mail size={18} className="input-icon" />
                     <input
-                      id="last_name"
-                      type="text"
-                      name="last_name"
-                      value={formData.last_name}
+                      id="email"
+                      type="email"
+                      name="email"
+                      value={formData.email}
                       onChange={handleChange}
-                      placeholder="e.g. Patel"
-                      autoComplete="family-name"
+                      placeholder="name@example.com"
+                      autoComplete="email"
                       required
                     />
                   </div>
                 </div>
-              </div>
-        <form onSubmit={handleSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="form-group">
-              <label className="form-label">First Name</label>
-              <input
-                type="text"
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleChange}
-                placeholder="Ashwitha"
-                className="form-input"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Last Name</label>
-              <input
-                type="text"
-                name="last_name"
-                value={formData.last_name}
-                onChange={handleChange}
-                placeholder="kama"
-                className="form-input"
-                required
-              />
-            </div>
-          </div>
 
-          <div className="form-group">
-            <label className="form-label">Username</label>
-            <input
-              type="text"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              placeholder="janedoe"
-              className="form-input"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="jane@example.com"
-              className="form-input"
-              required
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div className="form-group">
-              <label className="form-label">Password</label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="At least 8 chars"
-                className="form-input"
-                required
-                minLength={8}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Confirm Password</label>
-              <input
-                type="password"
-                name="password_confirm"
-                value={formData.password_confirm}
-                onChange={handleChange}
-                placeholder="Repeat password"
-                className="form-input"
-                required
-              />
-            </div>
-          </div>
-
-              {/* Password Strength & Live Helpers */}
-              {formData.password && (
-                <div className="password-strength-container">
-                  <div className="strength-bar-track">
-                    <div
-                      className={`strength-bar-fill ${passwordStats.strength}`}
-                    ></div>
+                {/* Password & Confirm Password in Row */}
+                <div className="form-row">
+                  <div className="input-group">
+                    <label htmlFor="password">Password</label>
+                    <div className="input-wrapper">
+                      <Lock size={18} className="input-icon" />
+                      <input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        name="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="Min. 8 characters"
+                        autoComplete="new-password"
+                        required
+                        minLength={8}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
-                  <div className="password-hints">
-                    <span
-                      className={`password-hint-item ${
-                        passwordStats.hasMinLength ? 'valid' : ''
-                      }`}
-                    >
-                      {passwordStats.hasMinLength ? <Check size={12} /> : <X size={12} />}
-                      8+ characters
-                    </span>
-                    <span
-                      className={`password-hint-item ${
-                        passwordStats.hasLettersAndNumbers ? 'valid' : ''
-                      }`}
-                    >
-                      {passwordStats.hasLettersAndNumbers ? <Check size={12} /> : <X size={12} />}
-                      Letters & numbers
-                    </span>
+
+                  <div className="input-group">
+                    <label htmlFor="password_confirm">
+                      Confirm
+                      {formData.password_confirm && (
+                        <span className={`password-match-badge ${passwordStats.isMatch ? 'matched' : 'mismatched'}`}>
+                          {passwordStats.isMatch ? '✓ Matches' : '✗ Mismatch'}
+                        </span>
+                      )}
+                    </label>
+                    <div className="input-wrapper">
+                      <Lock size={18} className="input-icon" />
+                      <input
+                        id="password_confirm"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        name="password_confirm"
+                        value={formData.password_confirm}
+                        onChange={handleChange}
+                        placeholder="Repeat password"
+                        autoComplete="new-password"
+                        required
+                        minLength={8}
+                      />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                      >
+                        {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              )}
 
-              {/* Terms Checkbox */}
-              <div className="terms-row">
-                <label className="terms-label">
-                  <input
-                    type="checkbox"
-                    checked={agreedToTerms}
-                    onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  />
-                  <span className="custom-checkbox"></span>
-                  <span>
-                    I agree to VEGA's{' '}
-                    <span className="terms-link">Terms of Service</span> and{' '}
-                    <span className="terms-link">Privacy Policy</span>.
-                  </span>
-                </label>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                className="register-submit"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <span className="button-spinner"></span>
-                    <span>Creating Account...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Create Account</span>
-                    <ArrowRight size={18} />
-                  </>
+                {/* Password Strength & Live Helpers */}
+                {formData.password && (
+                  <div className="password-strength-container">
+                    <div className="strength-bar-track">
+                      <div
+                        className={`strength-bar-fill ${passwordStats.strength}`}
+                      ></div>
+                    </div>
+                    <div className="password-hints">
+                      <span
+                        className={`password-hint-item ${
+                          passwordStats.hasMinLength ? 'valid' : ''
+                        }`}
+                      >
+                        {passwordStats.hasMinLength ? <Check size={12} /> : <X size={12} />}
+                        8+ characters
+                      </span>
+                      <span
+                        className={`password-hint-item ${
+                          passwordStats.hasLettersAndNumbers ? 'valid' : ''
+                        }`}
+                      >
+                        {passwordStats.hasLettersAndNumbers ? <Check size={12} /> : <X size={12} />}
+                        Letters & numbers
+                      </span>
+                    </div>
+                  </div>
                 )}
-              </button>
-            </form>
+
+                {/* Terms Checkbox */}
+                <div className="terms-row">
+                  <label className="terms-label">
+                    <input
+                      type="checkbox"
+                      checked={agreedToTerms}
+                      onChange={(e) => setAgreedToTerms(e.target.checked)}
+                    />
+                    <span className="custom-checkbox"></span>
+                    <span>
+                      I agree to VEGA's{' '}
+                      <span className="terms-link">Terms of Service</span> and{' '}
+                      <span className="terms-link">Privacy Policy</span>.
+                    </span>
+                  </label>
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className="register-submit"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <span className="button-spinner"></span>
+                      <span>Creating Account...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Create Account</span>
+                      <ArrowRight size={18} />
+                    </>
+                  )}
+                </button>
+              </form>
 
             {/* Switch to Sign In */}
             <div className="signin-section">

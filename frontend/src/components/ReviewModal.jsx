@@ -46,7 +46,7 @@ const ReviewModal = ({ isOpen, onClose, booking, onSubmitReview, isProviderRevie
               {isProviderReview ? 'Rate Customer' : 'Rate & Review Service'}
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-              {isProviderReview ? 'Share feedback about the client interaction' : 'Your honest feedback helps the Ongole community'}
+              {isProviderReview ? 'Share feedback about the client interaction' : 'Your honest feedback helps the VEGA community'}
             </p>
           </div>
           <button

@@ -124,7 +124,7 @@ const MyBookings = () => {
             My Bookings & Orders
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9375rem', marginTop: '0.25rem' }}>
-            Track real-time appointment status, live provider location in Ongole, and submit reviews
+            Track real-time appointment status, live provider location, and submit reviews
           </p>
         </div>
 

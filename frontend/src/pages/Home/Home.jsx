@@ -86,7 +86,7 @@ function Home() {
   const [loading, setLoading] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
   const [locationMessage, setLocationMessage] = useState(
-    "Showing verified professionals in Ongole, Andhra Pradesh"
+    "Showing verified professionals near your location"
   );
 
   /* --------------------------------
@@ -253,7 +253,7 @@ function Home() {
             No Providers Found for "{selectedCategory || searchQuery}"
           </h3>
           <p style={{ color: '#64748b', fontSize: '0.9rem', maxWidth: '480px', margin: '0 auto 1.25rem' }}>
-            There are currently no registered professionals in Ongole for this service.
+            There are currently no registered professionals for this service in your area.
           </p>
           <button onClick={() => { setSelectedCategory(''); setSearchQuery(''); }} className="btn btn-primary btn-sm">
             Explore Other Categories
@@ -272,7 +272,7 @@ function Home() {
             Providers Exist but are Currently Offline
           </h3>
           <p style={{ color: '#b45309', fontSize: '0.9rem', maxWidth: '500px', margin: '0 auto 1.25rem' }}>
-            We have {diagnostics?.total_matching_service || 1} registered provider(s) for this service in Ongole, but none are currently online.
+            We have {diagnostics?.total_matching_service || 1} registered provider(s) for this service, but none are currently online.
           </p>
           <button onClick={() => setSelectedCategory('')} className="btn btn-primary btn-sm">
             View Available Services
@@ -291,7 +291,7 @@ function Home() {
             Providers are Outside Your Radius
           </h3>
           <p style={{ color: '#15803d', fontSize: '0.9rem', maxWidth: '500px', margin: '0 auto 1.25rem' }}>
-            {diagnostics?.active_matching_service || diagnostics?.total_matching_service} provider(s) found in Ongole/Prakasam district, but beyond {radius} km.
+            {diagnostics?.active_matching_service || diagnostics?.total_matching_service} provider(s) found, but beyond your {radius} km radius.
           </p>
           <button onClick={() => navigate('/nearby')} className="btn btn-primary btn-sm">
             Open Discovery & Expand Radius
@@ -306,7 +306,7 @@ function Home() {
           No professionals currently available
         </h3>
         <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
-          Try clearing filters or checking nearby areas around Ongole.
+          Try clearing filters or expanding your search radius.
         </p>
         <button onClick={() => { setSelectedCategory(''); setSearchQuery(''); }} className="btn btn-primary btn-sm">
           Reset Filters

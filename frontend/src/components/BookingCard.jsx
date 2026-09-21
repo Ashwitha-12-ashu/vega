@@ -82,21 +82,16 @@ const BookingCard = ({
             });
             setIsUpdatingLocation(false);
           },
-          async () => {
-            // Fallback: slight random shift in Ongole coordinates
-            const baseLat = booking.provider_latitude || 15.5057;
-            const baseLng = booking.provider_longitude || 80.0499;
-            const shiftedLat = Number((baseLat + (Math.random() - 0.5) * 0.003).toFixed(6));
-            const shiftedLng = Number((baseLng + (Math.random() - 0.5) * 0.003).toFixed(6));
-            await onUpdateLocation(booking.id, { latitude: shiftedLat, longitude: shiftedLng });
+          (err) => {
+            console.warn('Provider live GPS acquisition failed:', err);
             setIsUpdatingLocation(false);
           },
-          { timeout: 5000 }
+          { enableHighAccuracy: true, timeout: 10000 }
         );
       } else {
-        const baseLat = booking.provider_latitude || 15.5057;
-        const baseLng = booking.provider_longitude || 80.0499;
-        await onUpdateLocation(booking.id, { latitude: baseLat, longitude: baseLng });
+        if (booking.provider_latitude && booking.provider_longitude) {
+          await onUpdateLocation(booking.id, { latitude: booking.provider_latitude, longitude: booking.provider_longitude });
+        }
         setIsUpdatingLocation(false);
       }
     } catch (err) {
@@ -271,7 +266,7 @@ const BookingCard = ({
                 <p style={{ fontSize: '0.8125rem', color: 'var(--slate-600)', marginTop: '2px' }}>
                   {booking.distance_km !== null && booking.distance_km !== undefined
                     ? `📍 Provider is approx. ${booking.distance_km} km from destination`
-                    : '📍 Provider coordinates tracked in Ongole area'}
+                    : '📍 Live provider coordinates tracked'}
                   {booking.provider_location_updated_at && ` (Updated ${new Date(booking.provider_location_updated_at).toLocaleTimeString()})`}
                 </p>
               </div>
