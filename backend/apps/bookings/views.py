@@ -2,7 +2,8 @@ from rest_framework import status, permissions
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-from django.db import transaction
+from django.db import models, transaction
+from django.db.models import Q
 from django.core.exceptions import ValidationError
 from .models import Booking, BookingStatus
 from django.utils import timezone
