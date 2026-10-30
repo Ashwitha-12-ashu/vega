@@ -154,9 +154,34 @@ class Command(BaseCommand):
                 "description": "Local delivery, pickup and courier services.",
             },
             {
+                "name": "Agriculture & Farming",
+                "icon": "leaf",
+                "description": "Agricultural machinery, farming equipment maintenance and crop support.",
+            },
+            {
+                "name": "Facial & Skincare",
+                "icon": "sparkles",
+                "description": "Facial treatments, skincare therapy, organic cleanup and skin rejuvenation.",
+            },
+            {
+                "name": "Massage & Wellness",
+                "icon": "heart",
+                "description": "Therapeutic body massage, stress relief, spa therapy and personal wellness.",
+            },
+            {
+                "name": "Mehendi & Henna Art",
+                "icon": "sparkles",
+                "description": "Bridal mehendi, festive henna patterns, Arabic and traditional art.",
+            },
+            {
+                "name": "Home Cooking & Chef",
+                "icon": "utensils",
+                "description": "Personal home chef, festive catering and daily home cooking services.",
+            },
+            {
                 "name": "Other Services",
                 "icon": "wrench",
-                "description": "Other local services not covered by the available categories.",
+                "description": "Other specialized local services not covered by the standard categories.",
             },
         ]
 

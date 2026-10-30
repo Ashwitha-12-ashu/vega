@@ -24,6 +24,8 @@ import {
 import { useLocation } from "../../context/LocationContext";
 import { locationService } from "../../services/locationService";
 import { talentService } from "../../services/talentService";
+import SearchBar from "../../components/SearchBar/SearchBar";
+import ServicesSection from "../../components/ServiceCard/ServicesSection";
 
 import "./Home.css";
 
@@ -207,13 +209,13 @@ function Home() {
   const displayCategories =
     categories.length > 0
       ? categories.slice(0, 7).map((category, index) => ({
-          id: category.id,
-          name: category.name,
-          icon:
-            defaultCategories[index % defaultCategories.length].icon,
-          color:
-            defaultCategories[index % defaultCategories.length].color,
-        }))
+        id: category.id,
+        name: category.name,
+        icon:
+          defaultCategories[index % defaultCategories.length].icon,
+        color:
+          defaultCategories[index % defaultCategories.length].color,
+      }))
       : defaultCategories;
 
   const displayProviders = providers;
@@ -351,26 +353,23 @@ function Home() {
             </p>
 
             {/* SEARCH */}
-
-            <form
-              className="hero-search"
-              onSubmit={handleSearch}
-            >
-              <Search size={20} />
-
-              <input
-                type="text"
-                placeholder="Search for a service or professional..."
+            <div style={{ marginTop: '1.25rem', marginBottom: '1.25rem' }}>
+              <SearchBar
+                variant="hero"
+                placeholder="Search for a service or professional (e.g. Facial, Agriculture, Plumber)..."
                 value={searchQuery}
-                onChange={(event) =>
-                  setSearchQuery(event.target.value)
-                }
+                onChange={(event) => setSearchQuery(event.target.value)}
+                buttonText="Search"
+                onSearch={(query) => {
+                  setSearchQuery(query);
+                  if (query.trim()) {
+                    navigate(`/nearby?search=${encodeURIComponent(query.trim())}`);
+                  } else {
+                    navigate('/nearby');
+                  }
+                }}
               />
-
-              <button type="submit">
-                Search
-              </button>
-            </form>
+            </div>
 
             {/* LOCATION */}
 
@@ -445,28 +444,6 @@ function Home() {
 
               <div className="hero-image-overlay"></div>
 
-              <div className="floating-card rating-card">
-                <div className="floating-icon star-icon">
-                  <Star size={18} fill="currentColor" />
-                </div>
-
-                <div>
-                  <strong>4.9 / 5</strong>
-                  <span>Customer rating</span>
-                </div>
-              </div>
-
-              <div className="floating-card verified-card">
-                <div className="floating-icon verified-icon">
-                  <CheckCircle2 size={18} />
-                </div>
-
-                <div>
-                  <strong>Verified Pros</strong>
-                  <span>Trusted professionals</span>
-                </div>
-              </div>
-
             </div>
 
             <div className="hero-circle circle-one"></div>
@@ -474,91 +451,31 @@ function Home() {
 
           </div>
 
+
         </div>
 
       </section>
 
       {/* ================================
-          CATEGORIES
+          CATEGORIES & SERVICES
       ================================= */}
 
       <section className="categories-section">
+        <div className="categories-background-grid"></div>
 
-        <div className="home-container">
-
-          <div className="section-heading">
-
-            <div>
-              <span className="section-eyebrow">
-                EXPLORE SERVICES
-              </span>
-
-              <h2>
-                What can we help you with?
-              </h2>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => navigate("/services")}
-              className="view-all-button"
-            >
-              View all
-              <ArrowRight size={16} />
-            </button>
-
-          </div>
-
-          <div className="category-grid">
-
-            {displayCategories.map((category, index) => {
-
-              const Icon =
-                category.icon ||
-                defaultCategories[
-                  index % defaultCategories.length
-                ].icon;
-
-              const color =
-                category.color ||
-                defaultCategories[
-                  index % defaultCategories.length
-                ].color;
-
-              const active =
-                selectedCategory === category.name;
-
-              return (
-                <button
-                  type="button"
-                  key={category.id || category.name}
-                  className={`service-category ${color} ${
-                    active ? "active" : ""
-                  }`}
-                  onClick={() =>
-                    handleCategory(category.name)
-                  }
-                >
-
-                  <div className="category-icon">
-                    <Icon size={23} />
-                  </div>
-
-                  <span>{category.name}</span>
-
-                  <ChevronRight
-                    className="category-arrow"
-                    size={16}
-                  />
-
-                </button>
-              );
-            })}
-
-          </div>
-
+        <div className="home-container categories-content">
+          <ServicesSection
+            showTitle={true}
+            title="Book a Service"
+            subtitle="Explore popular categories or search all available services"
+            selectedCategory={selectedCategory}
+            onSelectCategory={(category) => {
+              const catName = category.name;
+              setSelectedCategory(catName);
+              handleCategory(catName);
+            }}
+          />
         </div>
-
       </section>
 
       {/* ================================
@@ -643,15 +560,15 @@ function Home() {
                   provider?.active_talent?.price_per_hour
                     ? `₹${provider.active_talent.price_per_hour}`
                     : provider?.price_per_hour
-                    ? `₹${provider.price_per_hour}`
-                    : "₹300";
+                      ? `₹${provider.price_per_hour}`
+                      : "₹300";
 
                 const distance =
                   provider?.distance_km !== undefined
                     ? `${provider.distance_km} km`
                     : provider?.distance
-                    ? `${provider.distance} km`
-                    : "Near you";
+                      ? `${provider.distance} km`
+                      : "Near you";
 
                 const image =
                   provider?.profile_photo ||

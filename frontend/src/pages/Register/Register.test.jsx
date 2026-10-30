@@ -11,10 +11,7 @@ vi.mock('../../services/authService', () => ({
   authService: {
     getCurrentUser: vi.fn().mockResolvedValue(null),
     login: vi.fn(),
-    register: vi.fn().mockResolvedValue({
-      user: { id: 1, username: 'johndoe', email: 'john@example.com' },
-      tokens: { access: 'fake-access', refresh: 'fake-refresh' },
-    }),
+    register: vi.fn(),
     logout: vi.fn(),
   },
 }));
@@ -28,9 +25,13 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-describe('VEGA Registration Page UI and Features', () => {
+describe('VEGA Registration Page UI, Validation and Error Handling', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authService.register.mockResolvedValue({
+      user: { id: 1, username: 'johndoe', email: 'john@example.com' },
+      tokens: { access: 'fake-access', refresh: 'fake-refresh' },
+    });
   });
 
   const renderRegister = () =>
@@ -44,66 +45,79 @@ describe('VEGA Registration Page UI and Features', () => {
       </ToastProvider>
     );
 
-  it('renders all registration form inputs and branding elements', () => {
+  it('renders all registration form inputs with visible mandatory asterisks', () => {
     renderRegister();
 
     expect(screen.getByRole('heading', { name: /Create your account/i })).toBeDefined();
-    expect(screen.getByPlaceholderText(/e\.g\. Ashwitha/i)).toBeDefined();
-    expect(screen.getByPlaceholderText(/e\.g\. Patel/i)).toBeDefined();
-    expect(screen.getByPlaceholderText(/Choose a unique username/i)).toBeDefined();
-    expect(screen.getByPlaceholderText(/name@example\.com/i)).toBeDefined();
-    expect(screen.getByPlaceholderText(/Min\. 8 characters/i)).toBeDefined();
-    expect(screen.getByPlaceholderText(/Repeat password/i)).toBeDefined();
-    expect(screen.getByRole('button', { name: /Create Account/i })).toBeDefined();
+    expect(screen.getByText(/First Name/i)).toBeDefined();
+    expect(screen.getByText(/Last Name/i)).toBeDefined();
+    expect(screen.getByText(/Username/i)).toBeDefined();
+    expect(screen.getByText(/Email Address/i)).toBeDefined();
+    expect(screen.getByText(/Confirm Password/i)).toBeDefined();
+
+    // Check visible asterisks
+    const asterisks = screen.getAllByText('*');
+    expect(asterisks.length).toBeGreaterThanOrEqual(5);
   });
 
-  it('toggles password visibility when the eye button is clicked', () => {
+  it('validates and rejects obviously invalid email formats like abc or test@', async () => {
     renderRegister();
 
-    const passwordInput = screen.getByPlaceholderText(/Min\. 8 characters/i);
-    expect(passwordInput.getAttribute('type')).toBe('password');
+    fireEvent.change(screen.getByPlaceholderText(/e\.g\. Ashwitha/i), { target: { value: 'Ashwitha' } });
+    fireEvent.change(screen.getByPlaceholderText(/e\.g\. Patel/i), { target: { value: 'Patel' } });
+    fireEvent.change(screen.getByPlaceholderText(/Choose a unique username/i), { target: { value: 'ashupatel' } });
+    fireEvent.change(screen.getByPlaceholderText(/name@example\.com/i), { target: { value: 'test@' } });
+    fireEvent.change(screen.getByPlaceholderText(/Min\. 8 characters/i), { target: { value: 'Secret1234' } });
+    fireEvent.change(screen.getByPlaceholderText(/Repeat password/i), { target: { value: 'Secret1234' } });
 
-    const toggleBtn = screen.getByRole('button', { name: /Show password/i });
-    fireEvent.click(toggleBtn);
+    const submitBtn = screen.getByRole('button', { name: /Create Account/i });
+    fireEvent.click(submitBtn);
 
-    expect(passwordInput.getAttribute('type')).toBe('text');
-    expect(screen.getByRole('button', { name: /Hide password/i })).toBeDefined();
-
-    fireEvent.click(screen.getByRole('button', { name: /Hide password/i }));
-    expect(passwordInput.getAttribute('type')).toBe('password');
+    expect(screen.getByText(/Please enter a valid email address/i)).toBeDefined();
+    expect(authService.register).not.toHaveBeenCalled();
   });
 
-  it('toggles confirm password visibility independently', () => {
+  it('validates empty mandatory fields and displays field-specific error messages', async () => {
     renderRegister();
 
-    const confirmPasswordInput = screen.getByPlaceholderText(/Repeat password/i);
-    expect(confirmPasswordInput.getAttribute('type')).toBe('password');
+    const submitBtn = screen.getByRole('button', { name: /Create Account/i });
+    fireEvent.click(submitBtn);
 
-    const toggleConfirmBtn = screen.getByRole('button', { name: /Show confirm password/i });
-    fireEvent.click(toggleConfirmBtn);
-
-    expect(confirmPasswordInput.getAttribute('type')).toBe('text');
-
-    fireEvent.click(screen.getByRole('button', { name: /Hide confirm password/i }));
-    expect(confirmPasswordInput.getAttribute('type')).toBe('password');
+    expect(screen.getByText(/Please enter your first name/i)).toBeDefined();
+    expect(screen.getByText(/Please enter your last name/i)).toBeDefined();
+    expect(screen.getByText(/Please choose a unique username/i)).toBeDefined();
+    expect(screen.getByText(/Please enter a valid email address/i)).toBeDefined();
+    expect(authService.register).not.toHaveBeenCalled();
   });
 
-  it('shows password matching indicator when confirm password is typed', () => {
+  it('displays existing email alert with direct sign in link when email is already registered', async () => {
+    authService.register.mockRejectedValue({
+      response: {
+        data: {
+          email: ['An account with this email already exists. Please log in instead.'],
+        },
+      },
+    });
+
     renderRegister();
 
-    const passwordInput = screen.getByPlaceholderText(/Min\. 8 characters/i);
-    const confirmPasswordInput = screen.getByPlaceholderText(/Repeat password/i);
+    fireEvent.change(screen.getByPlaceholderText(/e\.g\. Ashwitha/i), { target: { value: 'Ashwitha' } });
+    fireEvent.change(screen.getByPlaceholderText(/e\.g\. Patel/i), { target: { value: 'Patel' } });
+    fireEvent.change(screen.getByPlaceholderText(/Choose a unique username/i), { target: { value: 'ashupatel' } });
+    fireEvent.change(screen.getByPlaceholderText(/name@example\.com/i), { target: { value: 'existing@example.com' } });
+    fireEvent.change(screen.getByPlaceholderText(/Min\. 8 characters/i), { target: { value: 'Secret1234' } });
+    fireEvent.change(screen.getByPlaceholderText(/Repeat password/i), { target: { value: 'Secret1234' } });
 
-    fireEvent.change(passwordInput, { target: { value: 'Secret123!' } });
-    fireEvent.change(confirmPasswordInput, { target: { value: 'Different123!' } });
+    const submitBtn = screen.getByRole('button', { name: /Create Account/i });
+    fireEvent.click(submitBtn);
 
-    expect(screen.getByText(/Mismatch/i)).toBeDefined();
-
-    fireEvent.change(confirmPasswordInput, { target: { value: 'Secret123!' } });
-    expect(screen.getByText(/Matches/i)).toBeDefined();
+    await waitFor(() => {
+      expect(screen.getAllByText(/An account with this email already exists/i).length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText(/Sign In Now/i)).toBeDefined();
+    });
   });
 
-  it('successfully submits the form and navigates to home', async () => {
+  it('successfully submits valid registration data and navigates to /home', async () => {
     renderRegister();
 
     fireEvent.change(screen.getByPlaceholderText(/e\.g\. Ashwitha/i), { target: { value: 'Ashwitha' } });

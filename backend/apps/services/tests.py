@@ -107,20 +107,25 @@ class TalentConcurrencyTests(TransactionTestCase):
 
         t1 = Talent.objects.create(user=user, category=cat1, title='Talent 1', description='Desc', price_per_hour=50, is_active=False)
         t2 = Talent.objects.create(user=user, category=cat2, title='Talent 2', description='Desc', price_per_hour=60, is_active=False)
-
         errors = []
 
         def worker1():
+            from django.db import connection
             try:
                 Talent.activate_single_talent(t1.id, user)
             except Exception as e:
                 errors.append(e)
+            finally:
+                connection.close()
 
         def worker2():
+            from django.db import connection
             try:
                 Talent.activate_single_talent(t2.id, user)
             except Exception as e:
                 errors.append(e)
+            finally:
+                connection.close()
 
         th1 = threading.Thread(target=worker1)
         th2 = threading.Thread(target=worker2)

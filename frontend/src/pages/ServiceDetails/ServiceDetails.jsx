@@ -5,6 +5,9 @@ import { locationService } from '../../services/locationService';
 import { useLocation } from '../../context/LocationContext';
 import ProviderCard from '../../components/ProviderCard';
 import { ProviderSkeleton } from '../../components/SkeletonLoader';
+import SearchBar from '../../components/SearchBar/SearchBar';
+import ServiceCard from '../../components/ServiceCard/ServiceCard';
+import ServicesSection from '../../components/ServiceCard/ServicesSection';
 import {
   Search,
   Sparkles,
@@ -234,73 +237,44 @@ const ServiceDetails = () => {
         </p>
       </div>
 
-      {/* Interactive Search Bar */}
-      <div className="services-search-container">
-        <form onSubmit={handleSearchSubmit} className="services-search-bar">
-          <Search size={22} color="var(--primary-600)" style={{ flexShrink: 0 }} />
-          <input
-            type="text"
-            className="services-search-input"
-            placeholder="Search for a service or skill (e.g. Mehendi, Electrician, Plumber)..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button type="submit" className="services-search-btn">
-            Find Providers
-          </button>
-        </form>
+      {/* Interactive Smart Search Bar */}
+      <div className="services-search-container" style={{ maxWidth: '640px', margin: '0 auto 2.5rem' }}>
+        <SearchBar
+          variant="default"
+          placeholder="Search for a service or skill (e.g. Mehendi, Facial, Electrician, Plumber)..."
+          buttonText="Find Providers"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onSearch={(query, selectedCat) => {
+            const trimmed = (query || '').trim();
+            const params = {};
+            if (trimmed) params.search = trimmed;
+            if (selectedCat) {
+              params.category = selectedCat.slug || selectedCat.name;
+              setSelectedCategory(selectedCat.slug || selectedCat.name);
+            }
+            setSearchParams(params);
+
+            // Scroll smoothly to results
+            const resultsElem = document.getElementById('providers-results-section');
+            if (resultsElem) {
+              resultsElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }}
+        />
       </div>
 
-      {/* Category Cards Grid */}
-      <div style={{ marginBottom: '1rem' }}>
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--slate-900)', marginBottom: '1.25rem' }}>
-          Service Categories
-        </h2>
-
-        {categoriesLoading ? (
-          <div className="grid-3">
-            <div className="skeleton" style={{ height: '160px', borderRadius: 'var(--radius-xl)' }} />
-            <div className="skeleton" style={{ height: '160px', borderRadius: 'var(--radius-xl)' }} />
-            <div className="skeleton" style={{ height: '160px', borderRadius: 'var(--radius-xl)' }} />
-          </div>
-        ) : (
-          <div className="services-category-grid">
-            {categories.map((cat) => {
-              const visual = getVisual(cat.name, cat.slug);
-              const Icon = visual.icon;
-              const isSelected =
-                selectedCategory.toLowerCase() === (cat.slug || cat.name).toLowerCase();
-
-              return (
-                <div
-                  key={cat.id}
-                  onClick={() => handleCategoryClick(cat)}
-                  className={`service-cat-card ${isSelected ? 'active-cat' : ''}`}
-                >
-                  <div
-                    className="service-cat-icon-wrapper"
-                    style={{ backgroundColor: visual.bg, color: visual.color }}
-                  >
-                    <Icon size={26} />
-                  </div>
-
-                  <h3 className="service-cat-name">{cat.name}</h3>
-                  <p className="service-cat-desc">{cat.description || visual.desc}</p>
-
-                  <div className="service-cat-footer">
-                    <span className="service-cat-count">
-                      {cat.talents_count || 1}+ Active Pros
-                    </span>
-                    <span className="service-cat-action">
-                      {isSelected ? 'Viewing Pros' : 'Find Providers'} <ChevronRight size={15} />
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+      {/* Category Cards Grid (Consistent 5 + Other Services everywhere) */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <ServicesSection
+          showTitle={true}
+          title="Service Categories"
+          subtitle="Select a category to view active verified providers"
+          selectedCategory={selectedCategory}
+          onSelectCategory={handleCategoryClick}
+        />
       </div>
+
 
       {/* Available Providers Section */}
       <div id="providers-results-section" style={{ paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>

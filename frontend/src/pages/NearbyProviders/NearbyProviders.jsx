@@ -6,6 +6,7 @@ import { talentService } from '../../services/talentService';
 import LocationBanner from '../../components/LocationBanner';
 import ProviderCard from '../../components/ProviderCard';
 import { ProviderSkeleton } from '../../components/SkeletonLoader';
+import SearchBar from '../../components/SearchBar/SearchBar';
 import { MapPin, Sliders, Search, Star, Layers, Map as MapIcon, Grid } from 'lucide-react';
 
 const NearbyProviders = () => {
@@ -260,18 +261,26 @@ const NearbyProviders = () => {
           alignItems: 'center',
         }}
       >
-        <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '0.5rem', flex: 2, minWidth: '240px' }}>
-          <input
-            type="text"
+        <div style={{ flex: 2, minWidth: '260px' }}>
+          <SearchBar
+            variant="compact"
             placeholder="Search provider, skill or service title..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="form-input"
+            onSearch={(query, selectedCat) => {
+              const params = {};
+              if (query.trim()) params.search = query.trim();
+              if (selectedCat) {
+                params.category = selectedCat.slug || selectedCat.name;
+                setSelectedCategory(selectedCat.slug || selectedCat.name);
+              } else if (selectedCategory) {
+                params.category = selectedCategory;
+              }
+              if (minRating) params.min_rating = minRating;
+              setSearchParams(params);
+            }}
           />
-          <button type="submit" className="btn btn-primary btn-sm">
-            <Search size={16} />
-          </button>
-        </form>
+        </div>
 
         <div style={{ flex: 1, minWidth: '180px' }}>
           <select

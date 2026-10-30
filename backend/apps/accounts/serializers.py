@@ -49,8 +49,29 @@ class UserSerializer(serializers.ModelSerializer):
         return None
 
 
+import re
+from django.core.validators import validate_email as django_validate_email
+from django.core.exceptions import ValidationError as DjangoValidationError
+
 class RegisterSerializer(serializers.ModelSerializer):
-    """Serializer for user registration."""
+    """Serializer for user registration with strict validation."""
+    first_name = serializers.CharField(required=True, allow_blank=False, max_length=150, error_messages={
+        'blank': 'Please enter your first name.',
+        'required': 'Please enter your first name.',
+    })
+    last_name = serializers.CharField(required=True, allow_blank=False, max_length=150, error_messages={
+        'blank': 'Please enter your last name.',
+        'required': 'Please enter your last name.',
+    })
+    email = serializers.EmailField(required=True, allow_blank=False, error_messages={
+        'blank': 'Please enter your email address.',
+        'required': 'Please enter your email address.',
+        'invalid': 'Please enter a valid email address.',
+    })
+    username = serializers.CharField(required=True, allow_blank=False, max_length=150, error_messages={
+        'blank': 'Please choose a username.',
+        'required': 'Please choose a username.',
+    })
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True, required=True)
 
@@ -58,14 +79,40 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 'password', 'password_confirm']
 
+    def validate_email(self, value):
+        email = value.strip().lower()
+        # Reject obvious invalid patterns: abc, hello@, hello@., @test, test@
+        if not re.match(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$', email):
+            raise serializers.ValidationError("Please enter a valid email address.")
+
+        try:
+            django_validate_email(email)
+        except DjangoValidationError:
+            raise serializers.ValidationError("Please enter a valid email address.")
+
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError("An account with this email already exists. Please log in instead.")
+        return email
+
+    def validate_username(self, value):
+        username = value.strip()
+        if len(username) < 3:
+            raise serializers.ValidationError("Username must be at least 3 characters long.")
+        if User.objects.filter(username__iexact=username).exists():
+            raise serializers.ValidationError("This username is already taken. Please choose another.")
+        return username
+
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError({"password": "Password fields didn't match."})
+            raise serializers.ValidationError({"password_confirm": "Passwords do not match."})
         return attrs
 
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
+        validated_data['email'] = validated_data['email'].strip().lower()
+        validated_data['first_name'] = validated_data['first_name'].strip()
+        validated_data['last_name'] = validated_data['last_name'].strip()
         user = User.objects.create_user(**validated_data)
         user.set_password(password)
         user.save()

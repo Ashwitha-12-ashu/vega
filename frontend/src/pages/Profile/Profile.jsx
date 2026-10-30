@@ -28,7 +28,10 @@ import {
   ChevronRight,
   Sliders,
   DollarSign,
-  Info
+  Power,
+  Calendar,
+  Layers,
+  Compass,
 } from 'lucide-react';
 import './Profile.css';
 
@@ -42,7 +45,7 @@ const Profile = () => {
     goOffline,
     updateProfile,
     removeProfilePhoto,
-    refreshUser
+    refreshUser,
   } = useAuth();
 
   const {
@@ -50,7 +53,7 @@ const Profile = () => {
     isDetecting,
     locationError,
     requestBrowserLocation,
-    setManualLocation
+    setManualLocation,
   } = useLocation();
 
   const { showToast } = useToast();
@@ -305,7 +308,7 @@ const Profile = () => {
   };
 
   /* -------------------------------------------------------------
-     4. Provider Service / Talent Handling
+     4. Provider Service / Talent Handling (Supports Other Services)
      ------------------------------------------------------------- */
   const validateTalentForm = () => {
     const errors = {};
@@ -315,7 +318,11 @@ const Profile = () => {
     if (!talentForm.category_id) {
       errors.category_id = 'Please select a service category.';
     }
-    if (!talentForm.price_per_hour || isNaN(Number(talentForm.price_per_hour)) || Number(talentForm.price_per_hour) <= 0) {
+    if (
+      !talentForm.price_per_hour ||
+      isNaN(Number(talentForm.price_per_hour)) ||
+      Number(talentForm.price_per_hour) <= 0
+    ) {
       errors.price_per_hour = 'Please specify a valid hourly rate in ₹.';
     }
     setTalentErrors(errors);
@@ -425,14 +432,14 @@ const Profile = () => {
 
       {/* Header / Title */}
       <div className="profile-header-container">
-        <h1 className="profile-title">Profile & Account Settings</h1>
+        <h1 className="profile-title">Account & Profile Settings</h1>
         <p className="profile-subtitle">
-          Manage your personal details, profile photo, service location, and provider status
+          Manage your personal details, service location, profile photo, and service provider configuration.
         </p>
       </div>
 
       {/* =========================================================
-          SECTION 1: PROFILE HEADER BANNER
+          SECTION 1: FULL-WIDTH PROFILE HEADER BANNER
           ========================================================= */}
       <div className="profile-card profile-banner-card">
         <div className="profile-banner-left">
@@ -467,11 +474,17 @@ const Profile = () => {
               <span>@{user?.username}</span>
               <span>•</span>
               <span>{user?.email}</span>
+              {coordinates?.city && (
+                <>
+                  <span>•</span>
+                  <span><MapPin size={14} style={{ display: 'inline', verticalAlign: '-2px' }} /> {coordinates.city}</span>
+                </>
+              )}
             </div>
 
             <div className="profile-banner-badges">
               <span className={`role-badge ${isProvider ? 'role-badge-provider' : 'role-badge-customer'}`}>
-                {isProvider ? <ShieldCheck size={13} /> : <User size={13} />}
+                {isProvider ? <ShieldCheck size={14} /> : <User size={14} />}
                 {isProvider ? 'Verified Service Provider' : 'Customer Account'}
               </span>
 
@@ -496,725 +509,821 @@ const Profile = () => {
             className={`btn ${isEditingPersonalInfo ? 'btn-secondary' : 'btn-outline'}`}
           >
             <Edit3 size={15} />
-            {isEditingPersonalInfo ? 'Cancel Editing' : 'Edit Profile'}
+            {isEditingPersonalInfo ? 'Cancel Editing' : 'Edit Personal Info'}
           </button>
         </div>
       </div>
 
       {/* =========================================================
-          SECTION 2: PROFILE PHOTO MANAGEMENT (COMPACT)
+          SECTION 2: 2-COLUMN BALANCED DASHBOARD LAYOUT
           ========================================================= */}
-      <div className="profile-card">
-        <div className="profile-card-header">
-          <div className="profile-card-title-group">
-            <div className="profile-card-icon-box">
-              <Camera size={20} />
-            </div>
-            <div>
-              <h3 className="profile-card-title">Profile Photo</h3>
-              <p className="profile-card-subtitle">
-                A clear face photo helps clients and providers recognize and trust you.
-              </p>
-            </div>
-          </div>
-        </div>
+      <div className="profile-dashboard-grid">
+        {/* ================= LEFT MAIN COLUMN ================= */}
+        <div className="profile-main-column">
+          {/* PERSONAL INFORMATION CARD */}
+          <div className="profile-card">
+            <div className="profile-card-header">
+              <div className="profile-card-title-group">
+                <div className="profile-card-icon-box">
+                  <User size={20} />
+                </div>
+                <div>
+                  <h3 className="profile-card-title">Personal Information</h3>
+                  <p className="profile-card-subtitle">
+                    Your contact credentials and background information
+                  </p>
+                </div>
+              </div>
 
-        <div className="photo-manager-layout">
-          <div className="photo-preview-box">
-            {photoPreview ? (
-              <img
-                src={photoPreview}
-                alt="Photo preview"
-                className="profile-avatar-img"
-                style={{ width: '84px', height: '84px' }}
-              />
+              {!isEditingPersonalInfo && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingPersonalInfo(true)}
+                  className="btn btn-outline btn-sm"
+                >
+                  <Edit3 size={14} /> Edit Details
+                </button>
+              )}
+            </div>
+
+            {isEditingPersonalInfo ? (
+              /* EDIT PERSONAL INFO FORM */
+              <form onSubmit={handleSavePersonalInfo}>
+                <div className="edit-form-grid">
+                  <div className="form-group">
+                    <label className="form-label">
+                      First Name <span style={{ color: 'var(--danger-500)' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={personalForm.first_name}
+                      onChange={(e) => setPersonalForm({ ...personalForm, first_name: e.target.value })}
+                      className="form-input"
+                      placeholder="e.g. Priya"
+                      required
+                    />
+                    {personalErrors.first_name && (
+                      <span className="form-error">{personalErrors.first_name}</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">
+                      Last Name <span style={{ color: 'var(--danger-500)' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={personalForm.last_name}
+                      onChange={(e) => setPersonalForm({ ...personalForm, last_name: e.target.value })}
+                      className="form-input"
+                      placeholder="e.g. Sharma"
+                      required
+                    />
+                    {personalErrors.last_name && (
+                      <span className="form-error">{personalErrors.last_name}</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="edit-form-grid" style={{ marginTop: '0.75rem' }}>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Email Address <span style={{ color: 'var(--danger-500)' }}>*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={personalForm.email}
+                      onChange={(e) => setPersonalForm({ ...personalForm, email: e.target.value })}
+                      className="form-input"
+                      placeholder="e.g. priya@example.com"
+                      required
+                    />
+                    {personalErrors.email && (
+                      <span className="form-error">{personalErrors.email}</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={personalForm.phone_number}
+                      onChange={(e) => setPersonalForm({ ...personalForm, phone_number: e.target.value })}
+                      className="form-input"
+                      placeholder="+91 98765 43210"
+                    />
+                    {personalErrors.phone_number && (
+                      <span className="form-error">{personalErrors.phone_number}</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                  <label className="form-label">About / Bio</label>
+                  <textarea
+                    rows={4}
+                    value={personalForm.bio}
+                    onChange={(e) => setPersonalForm({ ...personalForm, bio: e.target.value })}
+                    className="form-textarea"
+                    placeholder="Share a short bio, background experience, or areas of expertise..."
+                  />
+                  {personalErrors.bio && <span className="form-error">{personalErrors.bio}</span>}
+                </div>
+
+                <div className="form-actions-row">
+                  <button
+                    type="button"
+                    onClick={handleCancelPersonalInfo}
+                    disabled={isSavingPersonal}
+                    className="btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingPersonal}
+                    className="btn btn-primary"
+                    style={{ minWidth: '140px' }}
+                  >
+                    <Check size={16} />
+                    {isSavingPersonal ? 'Saving Changes...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
             ) : (
-              <div
-                className="profile-avatar-initials"
-                style={{ width: '84px', height: '84px', fontSize: '1.8rem' }}
-              >
-                {userInitials}
+              /* READ-ONLY PERSONAL INFO VIEW */
+              <div>
+                <div className="info-display-grid">
+                  <div className="info-item">
+                    <User size={18} className="info-item-icon" />
+                    <div className="info-item-content">
+                      <span className="info-item-label">Full Name</span>
+                      <span className="info-item-value">{userDisplayName}</span>
+                    </div>
+                  </div>
+
+                  <div className="info-item">
+                    <Mail size={18} className="info-item-icon" />
+                    <div className="info-item-content">
+                      <span className="info-item-label">Email Address</span>
+                      <span className="info-item-value">{user?.email || '—'}</span>
+                    </div>
+                  </div>
+
+                  <div className="info-item">
+                    <Phone size={18} className="info-item-icon" />
+                    <div className="info-item-content">
+                      <span className="info-item-label">Phone Number</span>
+                      <span className="info-item-value">
+                        {user?.profile?.phone_number || 'Not provided'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="info-item">
+                    <MapPin size={18} className="info-item-icon" />
+                    <div className="info-item-content">
+                      <span className="info-item-label">Saved Location</span>
+                      <span className="info-item-value">
+                        {coordinates?.city || 'Location not set'} {coordinates?.address ? `(${coordinates.address})` : ''}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="info-bio-card">
+                  <span className="info-item-label">About / Bio</span>
+                  <p>
+                    {user?.profile?.bio || 'No personal bio added yet. Click "Edit Details" above to add a bio describing yourself.'}
+                  </p>
+                </div>
               </div>
             )}
           </div>
 
-          <div className="photo-actions-group">
-            <div className="photo-btn-row">
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="btn btn-outline btn-sm"
-              >
-                <Upload size={14} />
-                {hasCustomPhoto ? 'Change Photo' : 'Upload Photo'}
-              </button>
+          {/* SERVICE & GPS LOCATION CARD */}
+          <div className="profile-card">
+            <div className="profile-card-header">
+              <div className="profile-card-title-group">
+                <div className="profile-card-icon-box">
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <h3 className="profile-card-title">Saved Location & GPS Coordinates</h3>
+                  <p className="profile-card-subtitle">
+                    Accurate coordinates are required for distance matching with nearby providers and clients
+                  </p>
+                </div>
+              </div>
+            </div>
 
-              {selectedPhotoFile && (
-                <>
+            <div className="location-display-row">
+              <div className="location-text-group">
+                <div
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    backgroundColor: 'var(--primary-100)',
+                    color: 'var(--primary-700)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Navigation size={22} />
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <strong style={{ fontSize: '1.05rem', color: 'var(--slate-900)' }}>
+                      {coordinates?.city || 'Location not set'}
+                    </strong>
+                    {coordinates?.address && (
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                        • {coordinates.address}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
+                    Coordinates: {coordinates?.lat ? `${coordinates.lat.toFixed(4)}, ${coordinates.lng.toFixed(4)}` : 'GPS not synchronized yet'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="location-actions-group">
+                <button
+                  type="button"
+                  onClick={requestBrowserLocation}
+                  disabled={isDetecting}
+                  className="btn btn-primary btn-sm"
+                >
+                  <Navigation size={14} className={isDetecting ? 'spin-animation' : ''} />
+                  {isDetecting ? 'Detecting GPS...' : 'Update via GPS'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsEditingLocation(!isEditingLocation)}
+                  className="btn btn-outline btn-sm"
+                >
+                  {isEditingLocation ? 'Cancel' : 'Edit Manually'}
+                </button>
+              </div>
+            </div>
+
+            {locationError && (
+              <div className="location-alert-box location-alert-warning">
+                <AlertCircle size={18} />
+                <span>{locationError}</span>
+              </div>
+            )}
+
+            {isEditingLocation && (
+              <form
+                onSubmit={handleSaveManualLocation}
+                style={{
+                  marginTop: '1.25rem',
+                  paddingTop: '1.25rem',
+                  borderTop: '1px solid var(--border-color)',
+                }}
+              >
+                <div className="edit-form-grid">
+                  <div className="form-group">
+                    <label className="form-label">City</label>
+                    <input
+                      type="text"
+                      value={locationForm.city}
+                      onChange={(e) => setLocationForm({ ...locationForm, city: e.target.value })}
+                      className="form-input"
+                      placeholder="e.g. Hyderabad, Bengaluru, Mumbai"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Address / Landmark</label>
+                    <input
+                      type="text"
+                      value={locationForm.address}
+                      onChange={(e) => setLocationForm({ ...locationForm, address: e.target.value })}
+                      className="form-input"
+                      placeholder="e.g. Hitech City Road, Madhapur"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-actions-row">
                   <button
                     type="button"
-                    onClick={handleSaveSelectedPhoto}
-                    disabled={isSavingPhoto}
+                    onClick={() => setIsEditingLocation(false)}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingLocation}
                     className="btn btn-primary btn-sm"
                   >
                     <Check size={14} />
-                    {isSavingPhoto ? 'Uploading...' : 'Save Photo'}
+                    {isSavingLocation ? 'Saving...' : 'Save Location'}
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleCancelPhotoPreview}
-                    disabled={isSavingPhoto}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    <X size={14} />
-                    Cancel
-                  </button>
-                </>
-              )}
-
-              {hasCustomPhoto && !selectedPhotoFile && (
-                <button
-                  type="button"
-                  onClick={handleRemovePhoto}
-                  disabled={isSavingPhoto}
-                  className="btn btn-outline btn-sm"
-                  style={{ color: 'var(--danger-500)', borderColor: '#fca5a5' }}
-                >
-                  <Trash2 size={14} />
-                  Remove Photo
-                </button>
-              )}
-            </div>
-
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-              Supported formats: JPG, PNG, or WEBP. Maximum file size: 5MB.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* =========================================================
-          SECTION 3: PERSONAL INFORMATION (VIEW & EDIT MODE)
-          ========================================================= */}
-      <div className="profile-card">
-        <div className="profile-card-header">
-          <div className="profile-card-title-group">
-            <div className="profile-card-icon-box">
-              <User size={20} />
-            </div>
-            <div>
-              <h3 className="profile-card-title">Personal Information</h3>
-              <p className="profile-card-subtitle">
-                Your legal name, contact details, and account credentials
-              </p>
-            </div>
-          </div>
-
-          {!isEditingPersonalInfo && (
-            <button
-              type="button"
-              onClick={() => setIsEditingPersonalInfo(true)}
-              className="btn btn-outline btn-sm"
-            >
-              <Edit3 size={14} /> Edit Details
-            </button>
-          )}
-        </div>
-
-        {isEditingPersonalInfo ? (
-          /* EDIT PERSONAL INFO FORM */
-          <form onSubmit={handleSavePersonalInfo}>
-            <div className="edit-form-grid">
-              <div className="form-group">
-                <label className="form-label">
-                  First Name <span style={{ color: 'var(--danger-500)' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  value={personalForm.first_name}
-                  onChange={(e) => setPersonalForm({ ...personalForm, first_name: e.target.value })}
-                  className="form-input"
-                  placeholder="e.g. Priya"
-                  required
-                />
-                {personalErrors.first_name && (
-                  <span className="form-error">{personalErrors.first_name}</span>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  Last Name <span style={{ color: 'var(--danger-500)' }}>*</span>
-                </label>
-                <input
-                  type="text"
-                  value={personalForm.last_name}
-                  onChange={(e) => setPersonalForm({ ...personalForm, last_name: e.target.value })}
-                  className="form-input"
-                  placeholder="e.g. Sharma"
-                  required
-                />
-                {personalErrors.last_name && (
-                  <span className="form-error">{personalErrors.last_name}</span>
-                )}
-              </div>
-            </div>
-
-            <div className="edit-form-grid" style={{ marginTop: '0.5rem' }}>
-              <div className="form-group">
-                <label className="form-label">
-                  Email Address <span style={{ color: 'var(--danger-500)' }}>*</span>
-                </label>
-                <input
-                  type="email"
-                  value={personalForm.email}
-                  onChange={(e) => setPersonalForm({ ...personalForm, email: e.target.value })}
-                  className="form-input"
-                  placeholder="e.g. priya@example.com"
-                  required
-                />
-                {personalErrors.email && (
-                  <span className="form-error">{personalErrors.email}</span>
-                )}
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Phone Number</label>
-                <input
-                  type="tel"
-                  value={personalForm.phone_number}
-                  onChange={(e) => setPersonalForm({ ...personalForm, phone_number: e.target.value })}
-                  className="form-input"
-                  placeholder="+91 98765 43210"
-                />
-                {personalErrors.phone_number && (
-                  <span className="form-error">{personalErrors.phone_number}</span>
-                )}
-              </div>
-            </div>
-
-            <div className="form-group" style={{ marginTop: '0.5rem' }}>
-              <label className="form-label">About / Bio</label>
-              <textarea
-                rows={3}
-                value={personalForm.bio}
-                onChange={(e) => setPersonalForm({ ...personalForm, bio: e.target.value })}
-                className="form-textarea"
-                placeholder="Share a short bio or background about yourself..."
-              />
-              {personalErrors.bio && <span className="form-error">{personalErrors.bio}</span>}
-            </div>
-
-            <div className="form-actions-row">
-              <button
-                type="button"
-                onClick={handleCancelPersonalInfo}
-                disabled={isSavingPersonal}
-                className="btn btn-secondary"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSavingPersonal}
-                className="btn btn-primary"
-                style={{ minWidth: '140px' }}
-              >
-                <Check size={16} />
-                {isSavingPersonal ? 'Saving Changes...' : 'Save Changes'}
-              </button>
-            </div>
-          </form>
-        ) : (
-          /* READ-ONLY PERSONAL INFO VIEW */
-          <div>
-            <div className="info-display-grid">
-              <div className="info-item">
-                <User size={18} className="info-item-icon" />
-                <div className="info-item-content">
-                  <span className="info-item-label">Full Name</span>
-                  <span className="info-item-value">{userDisplayName}</span>
                 </div>
-              </div>
-
-              <div className="info-item">
-                <Mail size={18} className="info-item-icon" />
-                <div className="info-item-content">
-                  <span className="info-item-label">Email Address</span>
-                  <span className="info-item-value">{user?.email || '—'}</span>
-                </div>
-              </div>
-
-              <div className="info-item">
-                <Phone size={18} className="info-item-icon" />
-                <div className="info-item-content">
-                  <span className="info-item-label">Phone Number</span>
-                  <span className="info-item-value">
-                    {user?.profile?.phone_number || 'Not provided'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="info-item">
-                <MapPin size={18} className="info-item-icon" />
-                <div className="info-item-content">
-                  <span className="info-item-label">Saved Location</span>
-                  <span className="info-item-value">
-                    {coordinates?.city || 'Location not set'} {coordinates?.address ? `(${coordinates.address})` : ''}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {user?.profile?.bio && (
-              <div className="info-bio-card">
-                <span className="info-item-label">About / Bio</span>
-                <p style={{ color: 'var(--slate-800)', fontSize: '0.9375rem', marginTop: '0.35rem', lineHeight: 1.6 }}>
-                  {user.profile.bio}
-                </p>
-              </div>
+              </form>
             )}
           </div>
-        )}
-      </div>
 
-      {/* =========================================================
-          SECTION 4: SERVICE & GPS LOCATION
-          ========================================================= */}
-      <div className="profile-card">
-        <div className="profile-card-header">
-          <div className="profile-card-title-group">
-            <div className="profile-card-icon-box">
-              <MapPin size={20} />
-            </div>
-            <div>
-              <h3 className="profile-card-title">Saved Location & GPS</h3>
-              <p className="profile-card-subtitle">
-                Accurate coordinates are required for calculating distances and matching nearby providers
-              </p>
-            </div>
-          </div>
-        </div>
+          {/* PROVIDER PROFILE DASHBOARD / PROMO CARD */}
+          {isProvider ? (
+            <div className="profile-card provider-dashboard-card">
+              <div className="profile-card-header">
+                <div className="profile-card-title-group">
+                  <div className="profile-card-icon-box" style={{ backgroundColor: '#dcfce7', color: '#15803d' }}>
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <h3 className="profile-card-title" style={{ color: '#14532d' }}>
+                      Provider Service Profile
+                    </h3>
+                    <p className="profile-card-subtitle" style={{ color: '#166534' }}>
+                      Your public service category, pricing, and offering details
+                    </p>
+                  </div>
+                </div>
 
-        <div className="location-display-row">
-          <div className="location-text-group">
-            <div
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--primary-100)',
-                color: 'var(--primary-700)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Navigation size={20} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <strong style={{ fontSize: '1rem', color: 'var(--slate-900)' }}>
-                  {coordinates?.city || 'Location not set'}
-                </strong>
-                {coordinates?.address && (
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    • {coordinates.address}
-                  </span>
-                )}
-              </div>
-              <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', display: 'block', marginTop: '2px' }}>
-                Coordinates: {coordinates?.lat ? `${coordinates.lat.toFixed(4)}, ${coordinates.lng.toFixed(4)}` : 'GPS not synchronized yet'}
-              </span>
-            </div>
-          </div>
-
-          <div className="location-actions-group">
-            <button
-              type="button"
-              onClick={requestBrowserLocation}
-              disabled={isDetecting}
-              className="btn btn-primary btn-sm"
-            >
-              <Navigation size={14} className={isDetecting ? 'spin-animation' : ''} />
-              {isDetecting ? 'Detecting GPS...' : 'Update via GPS'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsEditingLocation(!isEditingLocation)}
-              className="btn btn-outline btn-sm"
-            >
-              {isEditingLocation ? 'Cancel' : 'Edit Manually'}
-            </button>
-          </div>
-        </div>
-
-        {locationError && (
-          <div className="location-alert-box location-alert-warning">
-            <AlertCircle size={18} />
-            <span>{locationError}</span>
-          </div>
-        )}
-
-        {isEditingLocation && (
-          <form
-            onSubmit={handleSaveManualLocation}
-            style={{
-              marginTop: '1.25rem',
-              paddingTop: '1.25rem',
-              borderTop: '1px solid var(--border-color)',
-            }}
-          >
-            <div className="edit-form-grid">
-              <div className="form-group">
-                <label className="form-label">City</label>
-                <input
-                  type="text"
-                  value={locationForm.city}
-                  onChange={(e) => setLocationForm({ ...locationForm, city: e.target.value })}
-                  className="form-input"
-                  placeholder="e.g. Your City"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Address / Landmark</label>
-                <input
-                  type="text"
-                  value={locationForm.address}
-                  onChange={(e) => setLocationForm({ ...locationForm, address: e.target.value })}
-                  className="form-input"
-                  placeholder="e.g. Kurnool Road, Gandhi Nagar"
-                />
-              </div>
-            </div>
-
-            <div className="form-actions-row">
-              <button
-                type="button"
-                onClick={() => setIsEditingLocation(false)}
-                className="btn btn-secondary btn-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSavingLocation}
-                className="btn btn-primary btn-sm"
-              >
-                <Check size={14} />
-                {isSavingLocation ? 'Saving...' : 'Save Location'}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-
-      {/* =========================================================
-          SECTION 5: PROVIDER PROFILE DASHBOARD
-          ========================================================= */}
-      {isProvider ? (
-        <div className="profile-card provider-dashboard-card">
-          <div className="profile-card-header">
-            <div className="profile-card-title-group">
-              <div className="profile-card-icon-box" style={{ backgroundColor: '#dcfce7', color: '#15803d' }}>
-                <Sparkles size={20} />
-              </div>
-              <div>
-                <h3 className="profile-card-title" style={{ color: '#14532d' }}>
-                  Provider Service Profile
-                </h3>
-                <p className="profile-card-subtitle" style={{ color: '#166534' }}>
-                  Your public marketplace offering, pricing, and live availability
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <button
-                type="button"
-                onClick={handleToggleOnline}
-                disabled={isTogglingOnline}
-                className={`btn btn-sm ${isOnline ? 'btn-danger' : 'btn-success'}`}
-              >
-                <Activity size={14} />
-                {isOnline ? 'Go Offline' : 'Go Online'}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleToggleProvider}
-                disabled={isTogglingProvider}
-                className="btn btn-outline btn-sm"
-                style={{ fontSize: '0.75rem' }}
-              >
-                Disable Provider Mode
-              </button>
-            </div>
-          </div>
-
-          {/* Service Details Card / Edit Mode */}
-          {isEditingTalent ? (
-            <form onSubmit={handleSaveTalent} className="provider-talent-details">
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--slate-900)', marginBottom: '1.25rem' }}>
-                {activeTalent ? 'Edit Active Service Offering' : 'Create Your Service Offering'}
-              </h4>
-
-              <div className="edit-form-grid">
-                <div className="form-group">
-                  <label className="form-label">
-                    Service Category <span style={{ color: 'var(--danger-500)' }}>*</span>
-                  </label>
-                  <select
-                    value={talentForm.category_id}
-                    onChange={(e) => setTalentForm({ ...talentForm, category_id: e.target.value })}
-                    className="form-select"
-                    required
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={handleToggleOnline}
+                    disabled={isTogglingOnline}
+                    className={`btn btn-sm ${isOnline ? 'btn-danger' : 'btn-success'}`}
                   >
-                    <option value="">Select Category</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                  {talentErrors.category_id && <span className="form-error">{talentErrors.category_id}</span>}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    Service Title <span style={{ color: 'var(--danger-500)' }}>*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={talentForm.title}
-                    onChange={(e) => setTalentForm({ ...talentForm, title: e.target.value })}
-                    className="form-input"
-                    placeholder="e.g. Master Bridal Mehendi Artist"
-                    required
-                  />
-                  {talentErrors.title && <span className="form-error">{talentErrors.title}</span>}
+                    <Power size={14} />
+                    {isOnline ? 'Go Offline' : 'Go Online'}
+                  </button>
                 </div>
               </div>
 
-              <div className="edit-form-grid" style={{ marginTop: '0.5rem' }}>
-                <div className="form-group">
-                  <label className="form-label">
-                    Hourly Rate (₹ INR) <span style={{ color: 'var(--danger-500)' }}>*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="50"
-                    min="100"
-                    value={talentForm.price_per_hour}
-                    onChange={(e) => setTalentForm({ ...talentForm, price_per_hour: e.target.value })}
-                    className="form-input"
-                    placeholder="e.g. 500"
-                    required
-                  />
-                  {talentErrors.price_per_hour && <span className="form-error">{talentErrors.price_per_hour}</span>}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Years of Experience</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="50"
-                    value={talentForm.experience_years}
-                    onChange={(e) => setTalentForm({ ...talentForm, experience_years: e.target.value })}
-                    className="form-input"
-                    placeholder="e.g. 5"
-                  />
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginTop: '0.5rem' }}>
-                <label className="form-label">Service Description</label>
-                <textarea
-                  rows={3}
-                  value={talentForm.description}
-                  onChange={(e) => setTalentForm({ ...talentForm, description: e.target.value })}
-                  className="form-textarea"
-                  placeholder="Describe your expertise, equipment, and what clients can expect..."
-                />
-              </div>
-
-              <div className="form-group" style={{ marginTop: '0.5rem' }}>
-                <label className="form-label">Availability Notes</label>
-                <input
-                  type="text"
-                  value={talentForm.availability_notes}
-                  onChange={(e) => setTalentForm({ ...talentForm, availability_notes: e.target.value })}
-                  className="form-input"
-                  placeholder="e.g. Available Mon - Sat, 9 AM - 7 PM"
-                />
-              </div>
-
-              <div className="form-actions-row">
-                <button
-                  type="button"
-                  onClick={handleCancelTalentEdit}
-                  disabled={isSavingTalent}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingTalent}
-                  className="btn btn-primary"
-                  style={{ minWidth: '150px' }}
-                >
-                  <Check size={16} />
-                  {isSavingTalent ? 'Saving Service...' : 'Save Service Details'}
-                </button>
-              </div>
-            </form>
-          ) : activeTalent ? (
-            <div className="provider-talent-details">
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
-                <div>
-                  <span
-                    style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 800,
-                      textTransform: 'uppercase',
-                      color: 'var(--primary-600)',
-                      letterSpacing: '0.05em',
-                      backgroundColor: 'var(--primary-50)',
-                      padding: '0.2rem 0.5rem',
-                      borderRadius: '4px',
-                    }}
-                  >
-                    {activeTalent.category?.name || 'General Service'}
-                  </span>
-                  <h4 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--slate-900)', marginTop: '6px' }}>
-                    {activeTalent.title}
+              {/* Service Details Card / Edit Mode */}
+              {isEditingTalent ? (
+                <form onSubmit={handleSaveTalent} className="provider-talent-details">
+                  <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--slate-900)', marginBottom: '1.25rem' }}>
+                    {activeTalent ? 'Edit Active Service Offering' : 'Create Your Service Offering'}
                   </h4>
-                  <p style={{ color: 'var(--slate-600)', fontSize: '0.9rem', marginTop: '0.35rem', lineHeight: 1.6 }}>
-                    {activeTalent.description || 'No description provided.'}
+
+                  <div className="edit-form-grid">
+                    <div className="form-group">
+                      <label className="form-label">
+                        Service Category <span style={{ color: 'var(--danger-500)' }}>*</span>
+                      </label>
+                      <select
+                        value={talentForm.category_id}
+                        onChange={(e) => setTalentForm({ ...talentForm, category_id: e.target.value })}
+                        className="form-select"
+                        required
+                      >
+                        <option value="">Select Category</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      {talentErrors.category_id && <span className="form-error">{talentErrors.category_id}</span>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">
+                        Service Title <span style={{ color: 'var(--danger-500)' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={talentForm.title}
+                        onChange={(e) => setTalentForm({ ...talentForm, title: e.target.value })}
+                        className="form-input"
+                        placeholder="e.g. Master Bridal Mehendi Artist, AC Service"
+                        required
+                      />
+                      {talentErrors.title && <span className="form-error">{talentErrors.title}</span>}
+                    </div>
+                  </div>
+
+                  <div className="edit-form-grid" style={{ marginTop: '0.75rem' }}>
+                    <div className="form-group">
+                      <label className="form-label">
+                        Hourly Rate (₹ INR) <span style={{ color: 'var(--danger-500)' }}>*</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="10"
+                        min="1"
+                        value={talentForm.price_per_hour}
+                        onChange={(e) => setTalentForm({ ...talentForm, price_per_hour: e.target.value })}
+                        className="form-input"
+                        placeholder="e.g. 500"
+                        required
+                      />
+                      {talentErrors.price_per_hour && <span className="form-error">{talentErrors.price_per_hour}</span>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Years of Experience</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={talentForm.experience_years}
+                        onChange={(e) => setTalentForm({ ...talentForm, experience_years: e.target.value })}
+                        className="form-input"
+                        placeholder="e.g. 5"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                    <label className="form-label">Service Description</label>
+                    <textarea
+                      rows={3}
+                      value={talentForm.description}
+                      onChange={(e) => setTalentForm({ ...talentForm, description: e.target.value })}
+                      className="form-textarea"
+                      placeholder="Describe your expertise, equipment, what is included, and guarantees..."
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginTop: '0.75rem' }}>
+                    <label className="form-label">Availability Notes</label>
+                    <input
+                      type="text"
+                      value={talentForm.availability_notes}
+                      onChange={(e) => setTalentForm({ ...talentForm, availability_notes: e.target.value })}
+                      className="form-input"
+                      placeholder="e.g. Available Mon - Sat, 9 AM - 7 PM, Emergencies 24/7"
+                    />
+                  </div>
+
+                  <div className="form-actions-row">
+                    <button
+                      type="button"
+                      onClick={handleCancelTalentEdit}
+                      disabled={isSavingTalent}
+                      className="btn btn-secondary"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSavingTalent}
+                      className="btn btn-primary"
+                      style={{ minWidth: '150px' }}
+                    >
+                      <Check size={16} />
+                      {isSavingTalent ? 'Saving Service...' : 'Save Service Details'}
+                    </button>
+                  </div>
+                </form>
+              ) : activeTalent ? (
+                <div className="provider-talent-details">
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                      <span
+                        style={{
+                          fontSize: '0.75rem',
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          color: 'var(--primary-600)',
+                          letterSpacing: '0.05em',
+                          backgroundColor: 'var(--primary-50)',
+                          padding: '0.25rem 0.65rem',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        {activeTalent.category?.name || 'General Service'}
+                      </span>
+                      <h4 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--slate-900)', marginTop: '8px' }}>
+                        {activeTalent.title}
+                      </h4>
+                      <p style={{ color: 'var(--slate-600)', fontSize: '0.9375rem', marginTop: '0.35rem', lineHeight: 1.6 }}>
+                        {activeTalent.description || 'No description provided.'}
+                      </p>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--primary-700)' }}>
+                        ₹{activeTalent.price_per_hour}
+                      </span>
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', display: 'block', fontWeight: 600 }}>
+                        per hour
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Metrics Grid */}
+                  <div className="talent-metric-grid">
+                    <div className="talent-metric-item">
+                      <div className="talent-metric-icon">
+                        <Briefcase size={18} />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Experience</span>
+                        <strong>{activeTalent.experience_years} years</strong>
+                      </div>
+                    </div>
+
+                    <div className="talent-metric-item">
+                      <div className="talent-metric-icon" style={{ color: '#d97706', backgroundColor: '#fef3c7' }}>
+                        <Star size={18} fill="currentColor" />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Rating & Reviews</span>
+                        <strong>
+                          {Number(user?.profile?.average_rating || 0).toFixed(1)} ★ ({user?.profile?.total_reviews || 0} reviews)
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div className="talent-metric-item">
+                      <div className="talent-metric-icon">
+                        <Clock size={18} />
+                      </div>
+                      <div>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Availability</span>
+                        <strong style={{ fontSize: '0.85rem' }}>
+                          {activeTalent.availability_notes || 'Standard Business Hours'}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingTalent(true)}
+                      className="btn btn-outline btn-sm"
+                    >
+                      <Edit3 size={14} /> Edit Service Details
+                    </button>
+
+                    <Link to="/my-talents" className="btn btn-primary btn-sm">
+                      <Sparkles size={14} /> Manage All Talents ({talents.length})
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="provider-talent-details" style={{ textAlign: 'center', padding: '2.5rem 1.5rem' }}>
+                  <p style={{ color: 'var(--slate-600)', marginBottom: '1.25rem' }}>
+                    You have not created a service offering yet. Set up your skill and pricing to accept local bookings.
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingTalent(true)}
+                    className="btn btn-primary"
+                  >
+                    <Sparkles size={16} /> Create Service Offering
+                  </button>
                 </div>
-
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'var(--primary-700)' }}>
-                    ₹{activeTalent.price_per_hour}
-                  </span>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', fontWeight: 600 }}>
-                    per hour
-                  </span>
-                </div>
-              </div>
-
-              {/* Metrics Grid */}
-              <div className="talent-metric-grid">
-                <div className="talent-metric-item">
-                  <div className="talent-metric-icon">
-                    <Briefcase size={16} />
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Experience</span>
-                    <strong>{activeTalent.experience_years} years</strong>
-                  </div>
-                </div>
-
-                <div className="talent-metric-item">
-                  <div className="talent-metric-icon" style={{ color: '#d97706', backgroundColor: '#fef3c7' }}>
-                    <Star size={16} fill="currentColor" />
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Rating & Reviews</span>
-                    <strong>
-                      {Number(user?.profile?.average_rating || 0).toFixed(1)} ★ ({user?.profile?.total_reviews || 0} reviews)
-                    </strong>
-                  </div>
-                </div>
-
-                <div className="talent-metric-item">
-                  <div className="talent-metric-icon">
-                    <Clock size={16} />
-                  </div>
-                  <div>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Availability</span>
-                    <strong style={{ fontSize: '0.8125rem' }}>
-                      {activeTalent.availability_notes || 'Standard Weekday Hours'}
-                    </strong>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setIsEditingTalent(true)}
-                  className="btn btn-outline btn-sm"
-                >
-                  <Edit3 size={14} /> Edit Service Details
-                </button>
-
-                <Link to="/my-talents" className="btn btn-primary btn-sm">
-                  <Sparkles size={14} /> Manage All Talents ({talents.length})
-                </Link>
-              </div>
+              )}
             </div>
           ) : (
-            <div className="provider-talent-details" style={{ textAlign: 'center', padding: '2.5rem 1.5rem' }}>
-              <p style={{ color: 'var(--slate-600)', marginBottom: '1.25rem' }}>
-                You have not created a service offering yet. Set up your skill and pricing to accept local bookings.
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsEditingTalent(true)}
-                className="btn btn-primary"
-              >
-                <Sparkles size={16} /> Create Service Offering
-              </button>
+            /* BECOME A PROVIDER PROMO CARD */
+            <div className="profile-card" style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'var(--primary-100)',
+                      color: 'var(--primary-700)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Radio size={24} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--slate-900)' }}>
+                      Offer Your Services on VEGA
+                    </h3>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Join verified local professionals, set your custom hourly rates, and get booked directly.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleToggleProvider}
+                  disabled={isTogglingProvider}
+                  className="btn btn-primary"
+                >
+                  <Sparkles size={16} /> Enable Provider Mode
+                </button>
+              </div>
             </div>
           )}
         </div>
-      ) : (
-        /* BECOME A PROVIDER PROMO CARD */
-        <div className="profile-card" style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div
-                style={{
-                  width: '46px',
-                  height: '46px',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: 'var(--primary-100)',
-                  color: 'var(--primary-700)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Radio size={22} />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--slate-900)' }}>
-                  Offer Services on VEGA
-                </h3>
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Join verified professionals, set your own hourly pricing, and get booked directly.
-                </p>
+
+        {/* ================= RIGHT SIDEBAR COLUMN ================= */}
+        <div className="profile-sidebar-column">
+          {/* PHOTO MANAGER CARD */}
+          <div className="profile-card">
+            <div className="profile-card-header" style={{ marginBottom: '1rem' }}>
+              <div className="profile-card-title-group">
+                <div className="profile-card-icon-box" style={{ width: '36px', height: '36px' }}>
+                  <Camera size={18} />
+                </div>
+                <div>
+                  <h3 className="profile-card-title" style={{ fontSize: '1.1rem' }}>Profile Picture</h3>
+                  <p className="profile-card-subtitle" style={{ fontSize: '0.8rem' }}>Upload a clear photo</p>
+                </div>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleToggleProvider}
-              disabled={isTogglingProvider}
-              className="btn btn-primary"
-            >
-              <Sparkles size={16} /> Enable Provider Mode
-            </button>
+            <div className="sidebar-photo-box">
+              {photoPreview ? (
+                <img
+                  src={photoPreview}
+                  alt="Avatar preview"
+                  className="profile-avatar-img"
+                  style={{ width: '100px', height: '100px' }}
+                />
+              ) : (
+                <div
+                  className="profile-avatar-initials"
+                  style={{ width: '100px', height: '100px', fontSize: '2rem' }}
+                >
+                  {userInitials}
+                </div>
+              )}
+
+              <div className="sidebar-photo-actions">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="btn btn-outline btn-sm"
+                  style={{ width: '100%' }}
+                >
+                  <Upload size={14} />
+                  {hasCustomPhoto ? 'Choose New Photo' : 'Upload Photo'}
+                </button>
+
+                {selectedPhotoFile && (
+                  <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
+                    <button
+                      type="button"
+                      onClick={handleSaveSelectedPhoto}
+                      disabled={isSavingPhoto}
+                      className="btn btn-primary btn-sm"
+                      style={{ flex: 1 }}
+                    >
+                      <Check size={14} />
+                      {isSavingPhoto ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelPhotoPreview}
+                      disabled={isSavingPhoto}
+                      className="btn btn-secondary btn-sm"
+                      style={{ flex: 1 }}
+                    >
+                      <X size={14} />
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
+                {hasCustomPhoto && !selectedPhotoFile && (
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    disabled={isSavingPhoto}
+                    className="btn btn-outline btn-sm"
+                    style={{ width: '100%', color: 'var(--danger-500)', borderColor: '#fca5a5' }}
+                  >
+                    <Trash2 size={14} />
+                    Remove Photo
+                  </button>
+                )}
+              </div>
+
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                JPG, PNG or WEBP up to 5MB.
+              </p>
+            </div>
+          </div>
+
+          {/* ACCOUNT CONTROLS & AVAILABILITY */}
+          <div className="profile-card">
+            <div className="profile-card-header" style={{ marginBottom: '0.75rem' }}>
+              <div className="profile-card-title-group">
+                <div className="profile-card-icon-box" style={{ width: '36px', height: '36px' }}>
+                  <Activity size={18} />
+                </div>
+                <div>
+                  <h3 className="profile-card-title" style={{ fontSize: '1.1rem' }}>Account Status</h3>
+                  <p className="profile-card-subtitle" style={{ fontSize: '0.8rem' }}>Mode & availability</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="control-item-row">
+                <div>
+                  <span className="control-item-label">Provider Mode</span>
+                  <p className="control-item-desc">
+                    {isProvider ? 'Enabled - You can offer services' : 'Disabled - Customer account'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleToggleProvider}
+                  disabled={isTogglingProvider}
+                  className="btn btn-outline btn-sm"
+                  style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem' }}
+                >
+                  {isProvider ? 'Disable' : 'Enable'}
+                </button>
+              </div>
+
+              {isProvider && (
+                <div className="control-item-row">
+                  <div>
+                    <span className="control-item-label">Discovery Status</span>
+                    <p className="control-item-desc">
+                      {isOnline ? 'Online - Discoverable nearby' : 'Offline - Hidden from search'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleToggleOnline}
+                    disabled={isTogglingOnline}
+                    className={`btn btn-sm ${isOnline ? 'btn-danger' : 'btn-success'}`}
+                    style={{ fontSize: '0.75rem', padding: '0.3rem 0.65rem' }}
+                  >
+                    {isOnline ? 'Go Offline' : 'Go Online'}
+                  </button>
+                </div>
+              )}
+
+              <div className="control-item-row">
+                <div>
+                  <span className="control-item-label">Account Security</span>
+                  <p className="control-item-desc">JWT Authentication Active</p>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700 }}>
+                  Active ✓
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* QUICK LINKS */}
+          <div className="profile-card">
+            <div className="profile-card-header" style={{ marginBottom: '0.75rem' }}>
+              <div className="profile-card-title-group">
+                <div className="profile-card-icon-box" style={{ width: '36px', height: '36px' }}>
+                  <Layers size={18} />
+                </div>
+                <div>
+                  <h3 className="profile-card-title" style={{ fontSize: '1.1rem' }}>Quick Shortcuts</h3>
+                  <p className="profile-card-subtitle" style={{ fontSize: '0.8rem' }}>Fast navigation</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="sidebar-links-list">
+              {isProvider && (
+                <Link to="/my-talents" className="sidebar-link-btn">
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Sparkles size={16} color="var(--primary-600)" />
+                    <span>My Service Talents</span>
+                  </span>
+                  <ChevronRight size={16} color="var(--slate-400)" />
+                </Link>
+              )}
+
+              <Link to="/my-bookings" className="sidebar-link-btn">
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Calendar size={16} color="var(--primary-600)" />
+                  <span>My Bookings</span>
+                </span>
+                <ChevronRight size={16} color="var(--slate-400)" />
+              </Link>
+
+              <Link to="/nearby" className="sidebar-link-btn">
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Compass size={16} color="var(--primary-600)" />
+                  <span>Discover Nearby Pros</span>
+                </span>
+                <ChevronRight size={16} color="var(--slate-400)" />
+              </Link>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

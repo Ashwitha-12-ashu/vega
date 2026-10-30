@@ -428,7 +428,9 @@ const MyTalents = () => {
 
             <form onSubmit={handleFormSubmit}>
               <div className="form-group">
-                <label className="form-label">Service Category</label>
+                <label className="form-label">
+                  Service Category <span style={{ color: '#ef4444', fontWeight: '700' }}>*</span>
+                </label>
                 <select
                   value={formData.category_id}
                   onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
@@ -445,7 +447,9 @@ const MyTalents = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Service Title</label>
+                <label className="form-label">
+                  Service Title <span style={{ color: '#ef4444', fontWeight: '700' }}>*</span>
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. Master Bridal Makeup & Hair Styling"
@@ -458,7 +462,9 @@ const MyTalents = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div className="form-group">
-                  <label className="form-label">Price per Hour (₹)</label>
+                  <label className="form-label">
+                    Price per Hour (₹) <span style={{ color: '#ef4444', fontWeight: '700' }}>*</span>
+                  </label>
                   <input
                     type="number"
                     step="0.01"
@@ -472,7 +478,9 @@ const MyTalents = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Experience (Years)</label>
+                  <label className="form-label">
+                    Experience (Years) <span style={{ color: '#ef4444', fontWeight: '700' }}>*</span>
+                  </label>
                   <input
                     type="number"
                     min="0"
@@ -486,7 +494,9 @@ const MyTalents = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Detailed Description</label>
+                <label className="form-label">
+                  Detailed Description <span style={{ color: '#ef4444', fontWeight: '700' }}>*</span>
+                </label>
                 <textarea
                   rows={3}
                   placeholder="Describe your skills, tools, and what is included in the service..."

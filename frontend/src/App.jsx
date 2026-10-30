@@ -196,12 +196,28 @@ function AppRoutes() {
             }
           />
 
-          {/* Provider Talents */}
+          {/* Provider Talents & Dashboard */}
           <Route
             path="/my-talents"
             element={
               <ProtectedRoute requireProvider>
                 <MyTalents />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/provider-dashboard"
+            element={
+              <ProtectedRoute requireProvider>
+                <MyTalents />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/provider-profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />

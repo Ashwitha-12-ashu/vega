@@ -240,8 +240,13 @@
 }
 
 @keyframes orbFloat {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(-30px, 30px) scale(1.1); }
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  100% {
+    transform: translate(-30px, 30px) scale(1.1);
+  }
 }
 
 .hero-grid {
@@ -263,17 +268,25 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.4rem 0.875rem;
+  padding: 0.45rem 1rem;
   margin-bottom: 1.5rem;
   border-radius: var(--radius-full);
-  background: rgba(238, 242, 255, 0.9);
-  border: 1px solid rgba(199, 210, 254, 0.8);
-  color: var(--primary-700);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+  background: #e0e7ff;
+  border: 1.5px solid #c7d2fe;
+  color: #1e1b4b;
+  font-size: 0.875rem;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.12);
   backdrop-filter: blur(8px);
+  letter-spacing: -0.01em;
 }
+
+.eyebrow span:last-child {
+  font-weight: 800;
+  color: #1e1b4b;
+  letter-spacing: -0.01em;
+}
+
 
 .eyebrow-beacon {
   width: 8px;
@@ -286,26 +299,30 @@
 .hero h1 {
   font-size: clamp(2.5rem, 4.5vw, 3.75rem);
   font-weight: 800;
-  line-height: 1.08;
+  line-height: 1.1;
   letter-spacing: -0.035em;
-  color: var(--slate-950);
+  color: #0f172a;
   margin-bottom: 1.25rem;
+  text-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .hero h1 .highlight-text {
-  background: var(--grad-vibrant);
+  background: linear-gradient(135deg, #4338ca 0%, #6366f1 50%, #7c3aed 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline;
+  font-weight: 850;
 }
 
 .hero-description {
-  font-size: 1.125rem;
+  font-size: 1.15rem;
   line-height: 1.65;
-  color: var(--slate-600);
-  max-width: 520px;
+  color: #334155;
+  font-weight: 500;
+  max-width: 540px;
   margin-bottom: 2rem;
 }
+
 
 /* Realistic Interactive Search Bar */
 .hero-search-card {
@@ -451,20 +468,51 @@
 
 .hero-blob-backdrop {
   position: absolute;
-  width: 420px;
-  height: 420px;
+  width: 480px;
+  height: 480px;
   border-radius: 50%;
-  background: radial-gradient(circle at 40% 40%, rgba(99, 102, 241, 0.18) 0%, rgba(168, 85, 247, 0.12) 60%, transparent 100%);
-  filter: blur(20px);
+  background: radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.22) 0%, rgba(168, 85, 247, 0.14) 50%, transparent 75%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.hero-visual-showcase {
+  position: relative;
+  z-index: 3;
+  width: min(480px, 92%);
+  border-radius: 2rem;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(99, 102, 241, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(248, 250, 255, 0.9) 100%);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+}
+
+.hero-visual-showcase:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 30px 60px -12px rgba(79, 70, 229, 0.25), 0 0 0 1px rgba(99, 102, 241, 0.15);
 }
 
 .hero-person-img {
-  position: relative;
-  z-index: 3;
-  width: min(440px, 90%);
-  max-height: 500px;
-  object-fit: contain;
-  filter: drop-shadow(0 25px 35px rgba(15, 23, 42, 0.18));
+  display: block;
+  width: 100%;
+  height: 480px;
+  object-fit: cover;
+  object-position: center 15%;
+  transition: transform 0.5s ease;
+}
+
+.hero-visual-showcase:hover .hero-person-img {
+  transform: scale(1.02);
+}
+
+.hero-image-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+      rgba(255, 255, 255, 0) 65%,
+      rgba(248, 250, 255, 0.7) 88%,
+      rgba(248, 250, 255, 0.95) 100%);
 }
 
 /* Floating Service Cards with Staggered Physics */
@@ -504,9 +552,20 @@
   box-shadow: var(--shadow-sm);
 }
 
-.floating-card-icon.gold { background: #fef3c7; color: #d97706; }
-.floating-card-icon.blue { background: #e0f2fe; color: #0284c7; }
-.floating-card-icon.mint { background: #d1fae5; color: #059669; }
+.floating-card-icon.gold {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.floating-card-icon.blue {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.floating-card-icon.mint {
+  background: #d1fae5;
+  color: #059669;
+}
 
 .floating-card-content strong {
   display: block;
@@ -550,18 +609,33 @@
 }
 
 @keyframes floatAnim1 {
-  0% { transform: translateY(0px) rotate(0deg); }
-  100% { transform: translateY(-12px) rotate(1deg); }
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  100% {
+    transform: translateY(-12px) rotate(1deg);
+  }
 }
 
 @keyframes floatAnim2 {
-  0% { transform: translateY(0px) rotate(0deg); }
-  100% { transform: translateY(-10px) rotate(-1deg); }
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  100% {
+    transform: translateY(-10px) rotate(-1deg);
+  }
 }
 
 @keyframes floatAnim3 {
-  0% { transform: translateY(0px) rotate(0deg); }
-  100% { transform: translateY(-14px) rotate(1.5deg); }
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  100% {
+    transform: translateY(-14px) rotate(1.5deg);
+  }
 }
 
 /* =========================================================
@@ -735,13 +809,40 @@
 }
 
 /* Tone Palettes */
-.tone-gold .service-icon-bubble { background: #fffbeb; color: #d97706; }
-.tone-blue .service-icon-bubble { background: #eff6ff; color: #2563eb; }
-.tone-coral .service-icon-bubble { background: #fff1f2; color: #e11d48; }
-.tone-orange .service-icon-bubble { background: #fff7ed; color: #ea580c; }
-.tone-sky .service-icon-bubble { background: #f0f9ff; color: #0284c7; }
-.tone-mint .service-icon-bubble { background: #ecfdf5; color: #059669; }
-.tone-lilac .service-icon-bubble { background: #f5f3ff; color: #7c3aed; }
+.tone-gold .service-icon-bubble {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.tone-blue .service-icon-bubble {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.tone-coral .service-icon-bubble {
+  background: #fff1f2;
+  color: #e11d48;
+}
+
+.tone-orange .service-icon-bubble {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.tone-sky .service-icon-bubble {
+  background: #f0f9ff;
+  color: #0284c7;
+}
+
+.tone-mint .service-icon-bubble {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.tone-lilac .service-icon-bubble {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
 
 /* Toggle More Services Button Card */
 button.service-card-modern {
@@ -837,11 +938,25 @@ button.service-card-modern:hover {
   transform: scale(1.15);
 }
 
-.icon-box-1 { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-.icon-box-2 { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
-.icon-box-3 { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); }
-.icon-box-4 { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
-.icon-box-5 { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.icon-box-1 {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.icon-box-2 {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+}
+
+.icon-box-3 {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+}
+
+.icon-box-4 {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.icon-box-5 {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
 
 .assurance-card-modern h3 {
   font-size: 1rem;

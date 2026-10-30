@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const RAW_API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = RAW_API_URL.replace(/\/+$/, '');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -42,10 +43,20 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Do not attempt refresh on auth endpoints themselves (login, register, token refresh)
-    const isAuthEndpoint = originalRequest?.url?.includes('/auth/login/') ||
-      originalRequest?.url?.includes('/auth/register/') ||
-      originalRequest?.url?.includes('/auth/token/refresh/');
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
+    const url = originalRequest.url || '';
+    // Do not attempt refresh on auth endpoints themselves
+    const isAuthEndpoint =
+      url.includes('auth/login') ||
+      url.includes('auth/register') ||
+      url.includes('auth/token/refresh') ||
+      url.includes('auth/logout') ||
+      url.includes('auth/forgot-password') ||
+      url.includes('auth/verify-otp') ||
+      url.includes('auth/reset-password');
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       const refreshToken = localStorage.getItem('vega_refresh_token');
@@ -58,6 +69,8 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
+      originalRequest._retry = true;
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -69,18 +82,18 @@ api.interceptors.response.use(
           .catch((err) => Promise.reject(err));
       }
 
-      originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        const res = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
+        const refreshEndpoint = `${API_BASE_URL}/auth/token/refresh/`;
+        const res = await axios.post(refreshEndpoint, {
           refresh: refreshToken,
         });
 
         const newAccessToken = res.data.access;
         localStorage.setItem('vega_access_token', newAccessToken);
 
-        // SimpleJWT token rotation support: save new rotated refresh token if provided
+        // SimpleJWT token rotation support: save new rotated refresh token if returned
         if (res.data.refresh) {
           localStorage.setItem('vega_refresh_token', res.data.refresh);
         }

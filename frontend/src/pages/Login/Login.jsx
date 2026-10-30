@@ -238,7 +238,7 @@ const Login = () => {
               <div className="input-group">
 
                 <label htmlFor="username">
-                  Username or Email
+                  Username or Email <span style={{ color: '#ef4444', fontWeight: '700' }}>*</span>
                 </label>
 
                 <div className="input-wrapper">
@@ -271,7 +271,7 @@ const Login = () => {
                 <div className="password-label-row">
 
                   <label htmlFor="password">
-                    Password
+                    Password <span style={{ color: '#ef4444', fontWeight: '700' }}>*</span>
                   </label>
 
                   <Link

@@ -26,23 +26,9 @@ import {
 
 import { useLocation } from '../../context/LocationContext';
 import { useAuth } from '../../context/AuthContext';
+import SearchBar from '../../components/SearchBar/SearchBar';
+import ServicesSection from '../../components/ServiceCard/ServicesSection';
 import './Landing.css';
-
-const services = [
-  { name: 'Electrician', slug: 'electrician', icon: Zap, tone: 'gold', count: '120+ Pros' },
-  { name: 'Plumber', slug: 'plumber', icon: '💧', tone: 'blue', count: '95+ Pros' },
-  { name: 'Painter', slug: 'painter', icon: Paintbrush, tone: 'coral', count: '60+ Pros' },
-  { name: 'Carpenter', slug: 'carpenter', icon: '🔨', tone: 'orange', count: '80+ Pros' },
-  { name: 'AC Repair', slug: 'ac-repair', icon: Snowflake, tone: 'sky', count: '110+ Pros' },
-  { name: 'Cleaning', slug: 'cleaning', icon: SprayCan, tone: 'mint', count: '140+ Pros' },
-];
-
-const additionalServices = [
-  { name: 'Appliance Repair', slug: 'appliance-repair', icon: '🔧', tone: 'orange', count: '50+ Pros' },
-  { name: 'Beauty & Grooming', slug: 'beauty-at-home', icon: '✂️', tone: 'coral', count: '75+ Pros' },
-  { name: 'Pest Control', slug: 'pest-control', icon: '🛡️', tone: 'mint', count: '40+ Pros' },
-  { name: 'Deep Home Cleaning', slug: 'home-cleaning', icon: '🧹', tone: 'blue', count: '90+ Pros' },
-];
 
 const assurances = [
   [
@@ -195,8 +181,9 @@ export default function Landing() {
             {/* Live Pulsing Eyebrow */}
             <div className="eyebrow">
               <span className="eyebrow-beacon" />
-              <span>500+ Verified Service Experts Active Now</span>
+              <span>500+ Service Providers Active</span>
             </div>
+
 
             <h1>
               Find Trusted Local <br />
@@ -208,25 +195,25 @@ export default function Landing() {
               Book, track in real time, and pay securely in one place.
             </p>
 
-            {/* Interactive Search Bar */}
-            <form className="hero-search-card" onSubmit={handleSearch}>
-              <Search size={22} className="search-icon" />
-              <input
+            {/* Interactive Smart Search Bar with Autocomplete Suggestions */}
+            <div style={{ maxWidth: '540px', marginTop: '0.5rem' }}>
+              <SearchBar
+                variant="hero"
+                placeholder="Search electrician, facial, mehendi, plumber, agriculture..."
+                buttonText="Find Pros"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search electrician, plumber, cleaner..."
-                aria-label="Search for services"
+                onSearch={(query) => {
+                  setSearchQuery(query);
+                  navigate(query ? `/nearby?search=${encodeURIComponent(query)}` : '/nearby');
+                }}
               />
-              <button type="submit">
-                <span>Find Pros</span>
-                <ArrowRight size={17} />
-              </button>
-            </form>
+            </div>
 
             {/* Quick Tag Suggestions */}
             <div className="quick-tags">
               <span className="quick-tag-label">Popular:</span>
-              {['Electrician', 'Plumber', 'AC Repair', 'House Cleaning'].map((tag) => (
+              {['Electrician', 'Plumber', 'Facial & Skincare', 'Mehendi', 'Agriculture'].map((tag) => (
                 <button
                   key={tag}
                   type="button"
@@ -256,55 +243,21 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* HERO VISUAL & 3D FLOATING CARDS */}
+          {/* HERO VISUAL SHOWCASE */}
           <div className="hero-visual-wrapper">
             <div className="hero-blob-backdrop" />
 
-            <img
-              className="hero-person-img"
-              src="/vega-hero-person.png"
-              alt="VEGA local service professional"
-            />
-
-            {/* Floating Electrician Card */}
-            <div className="floating-card card-top-right">
-              <div className="floating-card-icon gold">
-                <Zap size={20} />
-              </div>
-              <div className="floating-card-content">
-                <strong>Electricians</strong>
-                <span>
-                  <span className="star-val">★ 4.9</span> • 120+ Online
-                </span>
-              </div>
-            </div>
-
-            {/* Floating Plumber Card */}
-            <div className="floating-card card-mid-left">
-              <div className="floating-card-icon blue">
-                💧
-              </div>
-              <div className="floating-card-content">
-                <strong>Plumbers</strong>
-                <span>
-                  <span className="star-val">★ 4.8</span> • 95+ Online
-                </span>
-              </div>
-            </div>
-
-            {/* Floating Cleaners Card */}
-            <div className="floating-card card-bottom-right">
-              <div className="floating-card-icon mint">
-                <SprayCan size={20} />
-              </div>
-              <div className="floating-card-content">
-                <strong>Home Cleaners</strong>
-                <span>
-                  <span className="star-val">★ 5.0</span> • 140+ Online
-                </span>
-              </div>
+            <div className="hero-visual-showcase">
+              <img
+                className="hero-person-img"
+                src="/images/vega-landing-hero.jpg"
+                alt="VEGA verified service professional"
+                loading="eager"
+              />
+              <div className="hero-image-vignette" />
             </div>
           </div>
+
         </div>
       </section>
 
@@ -335,58 +288,14 @@ export default function Landing() {
         <div className="landing-container">
           <div className="section-header-center">
             <span className="section-badge">Our Services</span>
-            <h2>Popular Home Services</h2>
-            <p>Select a category to view verified, top-rated local professionals nearby</p>
           </div>
 
-          <div className="service-grid-modern">
-            {services.map(({ name, slug, icon, tone, count }) => (
-              <Link
-                key={name}
-                to={`/nearby?category=${slug}`}
-                className={`service-card-modern tone-${tone}`}
-              >
-                <div className="service-icon-bubble">
-                  <ServiceIcon icon={icon} />
-                </div>
-                <h3>{name}</h3>
-                <span className="service-meta">{count}</span>
-                <ChevronRight className="service-card-arrow" size={16} />
-              </Link>
-            ))}
-
-            {showAdditionalServices &&
-              additionalServices.map(({ name, slug, icon, tone, count }) => (
-                <Link
-                  key={name}
-                  to={`/nearby?category=${slug}`}
-                  className={`service-card-modern tone-${tone}`}
-                >
-                  <div className="service-icon-bubble">
-                    <ServiceIcon icon={icon} />
-                  </div>
-                  <h3>{name}</h3>
-                  <span className="service-meta">{count}</span>
-                  <ChevronRight className="service-card-arrow" size={16} />
-                </Link>
-              ))}
-
-            <button
-              type="button"
-              className="service-card-modern tone-lilac"
-              onClick={() => setShowAdditionalServices((shown) => !shown)}
-              aria-expanded={showAdditionalServices}
-            >
-              <div className="service-icon-bubble">
-                <Grid2X2 size={24} />
-              </div>
-              <h3>{showAdditionalServices ? 'Show Less' : 'More Services'}</h3>
-              <span className="service-meta">
-                {showAdditionalServices ? 'Collapse list' : 'View all categories'}
-              </span>
-              <ChevronRight className="service-card-arrow" size={16} />
-            </button>
-          </div>
+          <ServicesSection
+            showTitle={true}
+            title="Popular Home Services"
+            subtitle="Select a category to view verified, top-rated local professionals nearby"
+            initialCount={7}
+          />
         </div>
       </section>
 
