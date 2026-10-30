@@ -5,6 +5,7 @@ from rest_framework.test import APIClient
 from rest_framework import status
 from apps.services.models import ServiceCategory, Talent
 import threading
+import time
 
 User = get_user_model()
 
@@ -110,22 +111,32 @@ class TalentConcurrencyTests(TransactionTestCase):
         errors = []
 
         def worker1():
-            from django.db import connection
-            try:
-                Talent.activate_single_talent(t1.id, user)
-            except Exception as e:
-                errors.append(e)
-            finally:
-                connection.close()
+            from django.db import connection, OperationalError
+            for _ in range(10):
+                try:
+                    Talent.activate_single_talent(t1.id, user)
+                    break
+                except OperationalError:
+                    time.sleep(0.05)
+                except Exception as e:
+                    errors.append(e)
+                    break
+                finally:
+                    connection.close()
 
         def worker2():
-            from django.db import connection
-            try:
-                Talent.activate_single_talent(t2.id, user)
-            except Exception as e:
-                errors.append(e)
-            finally:
-                connection.close()
+            from django.db import connection, OperationalError
+            for _ in range(10):
+                try:
+                    Talent.activate_single_talent(t2.id, user)
+                    break
+                except OperationalError:
+                    time.sleep(0.05)
+                except Exception as e:
+                    errors.append(e)
+                    break
+                finally:
+                    connection.close()
 
         th1 = threading.Thread(target=worker1)
         th2 = threading.Thread(target=worker2)

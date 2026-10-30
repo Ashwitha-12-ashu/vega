@@ -13,6 +13,7 @@ import { PublicRoute } from './routes/PublicRoute';
 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import { LocationPermissionBanner, ManualLocationModal } from './components/Location/LocationSelector';
 
 import Landing from './pages/Landing/Landing';
 import Login from './pages/Login/Login';
@@ -40,6 +41,10 @@ function AppRoutes() {
 
   return (
     <div className="app-container">
+
+      {/* Global Location Permission Request Banner & Manual Selector Modal */}
+      <LocationPermissionBanner />
+      <ManualLocationModal />
 
       {/* Navbar appears everywhere except for unauthenticated landing page */}
       {!isLandingPage && <Navbar />}

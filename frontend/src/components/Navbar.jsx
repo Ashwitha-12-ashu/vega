@@ -16,11 +16,14 @@ import {
   Compass,
   Home as HomeIcon,
   ShieldCheck,
+  MapPin,
 } from 'lucide-react';
+import { useLocation as useVegaLocation } from '../context/LocationContext';
 import './Navbar.css';
 
 const Navbar = () => {
   const { user, isAuthenticated, isProvider, isOnline, goOnline, goOffline, logout } = useAuth();
+  const { coordinates, openManualModal } = useVegaLocation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -156,6 +159,33 @@ const Navbar = () => {
 
         {/* User Actions / Auth Pill Buttons */}
         <div className="navbar-actions">
+          {/* Active Location Pill */}
+          <button
+            type="button"
+            onClick={openManualModal}
+            className="nav-location-pill"
+            title="Click to select or change location"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              background: 'var(--slate-100)',
+              border: '1px solid var(--slate-200)',
+              borderRadius: 'var(--radius-full)',
+              padding: '0.35rem 0.8rem',
+              fontSize: '0.8125rem',
+              fontWeight: 700,
+              color: 'var(--slate-700)',
+              cursor: 'pointer',
+              transition: 'all var(--transition-fast)',
+            }}
+          >
+            <MapPin size={13} color="var(--primary-600)" />
+            <span style={{ maxWidth: '130px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {coordinates?.city || 'Select Location'}
+            </span>
+          </button>
+
           {isAuthenticated ? (
             <>
               {/* Notification Bell with Badge */}

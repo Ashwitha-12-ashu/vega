@@ -3,7 +3,15 @@ import { useLocation } from '../context/LocationContext';
 import { MapPin, Navigation, Compass, Sliders, Check } from 'lucide-react';
 
 const LocationBanner = ({ showRadiusSelector = true, onSearchTrigger }) => {
-  const { coordinates, radius, setRadius, isDetecting, requestBrowserLocation, setManualLocation } = useLocation();
+  const {
+    coordinates,
+    radius,
+    setRadius,
+    isDetecting,
+    requestBrowserLocation,
+    setManualLocation,
+    openManualModal,
+  } = useLocation();
   const [isEditingAddress, setIsEditingAddress] = useState(false);
   const [cityInput, setCityInput] = useState(coordinates.city || '');
   const [addressInput, setAddressInput] = useState(coordinates.address || '');
@@ -90,10 +98,16 @@ const LocationBanner = ({ showRadiusSelector = true, onSearchTrigger }) => {
           </button>
 
           <button
-            onClick={() => setIsEditingAddress(!isEditingAddress)}
+            onClick={() => {
+              if (openManualModal) {
+                openManualModal();
+              } else {
+                setIsEditingAddress(!isEditingAddress);
+              }
+            }}
             className="btn btn-outline btn-sm"
           >
-            {isEditingAddress ? 'Cancel' : 'Change City'}
+            Change City
           </button>
         </div>
       </div>
