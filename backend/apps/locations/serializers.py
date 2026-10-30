@@ -35,11 +35,11 @@ class NearbyProviderSerializer(serializers.Serializer):
     total_reviews = serializers.IntegerField(source='user.profile.total_reviews')
     
     # Distance in KM
-    distance_km = serializers.FloatField()
+    distance_km = serializers.FloatField(allow_null=True, required=False)
     
     # Location
-    latitude = serializers.FloatField()
-    longitude = serializers.FloatField()
+    latitude = serializers.FloatField(allow_null=True, required=False)
+    longitude = serializers.FloatField(allow_null=True, required=False)
     address = serializers.CharField(default='')
     city = serializers.CharField(default='')
     

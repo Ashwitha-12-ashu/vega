@@ -155,19 +155,26 @@ elif os.getenv('VERCEL') == '1':
     # Vercel Serverless environment: writable SQLite database located in /tmp with seed data
     import shutil
     tmp_db = Path('/tmp/db.sqlite3')
-    starter_db = BASE_DIR / 'db_seed.sqlite3'
-    if not starter_db.exists():
-        starter_db = BASE_DIR / 'db.sqlite3'
+    candidate_starters = [
+        BASE_DIR / 'db_seed.sqlite3',
+        BASE_DIR / 'db.sqlite3',
+        Path.cwd() / 'backend' / 'db_seed.sqlite3',
+        Path.cwd() / 'backend' / 'db.sqlite3',
+        Path.cwd() / 'db_seed.sqlite3',
+        Path(__file__).resolve().parent.parent / 'db_seed.sqlite3',
+    ]
+    starter_db = next((p for p in candidate_starters if p.exists() and p.stat().st_size > 0), None)
 
-    if not tmp_db.exists() and starter_db.exists():
+    if starter_db and (not tmp_db.exists() or tmp_db.stat().st_size == 0):
         try:
             shutil.copy2(starter_db, tmp_db)
         except Exception:
             pass
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': tmp_db if tmp_db.exists() or Path('/tmp').is_dir() else starter_db,
+            'NAME': tmp_db if tmp_db.exists() or Path('/tmp').is_dir() else (starter_db or (BASE_DIR / 'db.sqlite3')),
         }
     }
 else:

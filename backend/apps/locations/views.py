@@ -41,62 +41,52 @@ class NearbyProvidersView(APIView):
     """
     GET /api/providers/nearby/
     Finds and discovers service providers near the given coordinates.
-    Enforces all core business rules:
+    Enforces core business rules:
       1. User is a provider (is_provider=True)
       2. Provider is ONLINE (is_online=True)
       3. Provider has an active talent (is_active=True)
-      4. Provider has valid location coordinates
+      4. Provider has location coordinates
       5. Provider matches category/search if requested
-      6. Distance is within radius (km)
-      7. Provider is not the requesting user (optional / self excluded)
+      6. Distance is calculated when coordinates are provided (with smart fallback to nearest providers)
+      7. Self excluded if authenticated
     """
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        # 1. Parse Latitude & Longitude (Strict GPS coordinates)
+        # 1. Parse Latitude & Longitude (GPS coordinates if available)
         lat_param = request.query_params.get('lat') or request.query_params.get('latitude')
         lng_param = request.query_params.get('lng') or request.query_params.get('longitude')
 
         try:
-            radius_km = float(request.query_params.get('radius', 5.0))
+            radius_km = float(request.query_params.get('radius', 15.0))
         except ValueError:
-            radius_km = 5.0
+            radius_km = 15.0
 
-        if not lat_param or not lng_param:
-            # Fallback to authenticated user's saved location if available
-            if request.user.is_authenticated and hasattr(request.user, 'location') and request.user.location.latitude is not None:
-                lat = float(request.user.location.latitude)
-                lng = float(request.user.location.longitude)
-            else:
-                # Do NOT silently substitute dummy coordinates; signal NO_LOCATION to frontend
-                return Response({
-                    'count': 0,
-                    'radius_km': radius_km,
-                    'search_center': None,
-                    'diagnostics': {
-                        'total_matching_service': 0,
-                        'active_matching_service': 0,
-                        'within_radius_count': 0,
-                        'empty_reason': 'NO_LOCATION'
-                    },
-                    'results': []
-                }, status=status.HTTP_200_OK)
-        else:
+        has_coords = False
+        lat = None
+        lng = None
+
+        if lat_param and lng_param:
             try:
                 lat = float(lat_param)
                 lng = float(lng_param)
                 if not (-90.0 <= lat <= 90.0 and -180.0 <= lng <= 180.0):
                     return Response({'error': 'Latitude must be between -90 and 90, Longitude between -180 and 180.'}, status=status.HTTP_400_BAD_REQUEST)
+                has_coords = True
             except ValueError:
                 return Response({'error': 'Invalid lat or lng format. Must be floating point coordinates.'}, status=status.HTTP_400_BAD_REQUEST)
+        elif request.user.is_authenticated and hasattr(request.user, 'location') and request.user.location.latitude is not None:
+            lat = float(request.user.location.latitude)
+            lng = float(request.user.location.longitude)
+            has_coords = True
 
         category_param = request.query_params.get('category', '').strip()
         search_query = request.query_params.get('search', '').strip() or request.query_params.get('service', '').strip()
         min_rating_param = request.query_params.get('min_rating')
 
-        # Compute search diagnostics across DB to power informative empty states
-        from apps.services.models import Talent, ServiceCategory
-        
+        from apps.services.models import Talent
+
+        # Base service / talent query for diagnostics
         service_filter_q = Q()
         if category_param:
             words = [w for w in category_param.replace('&', ' ').replace('-', ' ').split() if len(w) >= 3]
@@ -116,7 +106,8 @@ class NearbyProvidersView(APIView):
                 Q(description__icontains=search_query) |
                 Q(category__name__icontains=search_query) |
                 Q(user__first_name__icontains=search_query) |
-                Q(user__last_name__icontains=search_query)
+                Q(user__last_name__icontains=search_query) |
+                Q(user__username__icontains=search_query)
             )
             for sw in search_words:
                 sq |= Q(title__icontains=sw) | Q(category__name__icontains=sw)
@@ -136,10 +127,7 @@ class NearbyProvidersView(APIView):
             user__profile__is_online=True
         ).count()
 
-        # 3. Bounding box pre-filtering
-        bbox = get_bounding_box(lat, lng, radius_km)
-
-        # 4. Query locations of active providers
+        # Query active online providers with active talents
         locations_qs = UserLocation.objects.select_related(
             'user', 'user__profile'
         ).prefetch_related(
@@ -148,17 +136,13 @@ class NearbyProvidersView(APIView):
             user__profile__is_provider=True,
             user__profile__is_online=True,
             user__talents__is_active=True,
-            latitude__gte=bbox['min_lat'],
-            latitude__lte=bbox['max_lat'],
-            longitude__gte=bbox['min_lon'],
-            longitude__lte=bbox['max_lon'],
         ).distinct()
 
         # Exclude self if authenticated
         if request.user.is_authenticated:
             locations_qs = locations_qs.exclude(user=request.user)
 
-        # Category Filter
+        # Apply Category Filter
         if category_param:
             words = [w for w in category_param.replace('&', ' ').replace('-', ' ').split() if len(w) >= 3]
             loc_cat_q = Q(user__talents__category__slug__iexact=category_param) | Q(user__talents__category__name__icontains=category_param)
@@ -170,7 +154,7 @@ class NearbyProvidersView(APIView):
                     loc_cat_q |= Q(user__talents__category__name__icontains=word[:5]) | Q(user__talents__category__slug__icontains=word[:5])
             locations_qs = locations_qs.filter(Q(user__talents__is_active=True) & loc_cat_q)
 
-        # Search Query Filter
+        # Apply Search Query Filter
         if search_query:
             search_words = [w for w in search_query.replace('&', ' ').replace('-', ' ').split() if len(w) >= 2]
             loc_sq = (
@@ -181,17 +165,20 @@ class NearbyProvidersView(APIView):
                 (Q(user__talents__is_active=True) & (
                     Q(user__talents__title__icontains=search_query) |
                     Q(user__talents__description__icontains=search_query) |
-                    Q(user__talents__category__name__icontains=search_query)
+                    Q(user__talents__category__name__icontains=search_query) |
+                    Q(user__talents__category__slug__icontains=search_query)
                 ))
             )
             for sw in search_words:
                 loc_sq |= (
                     Q(user__talents__title__icontains=sw) |
-                    Q(user__talents__category__name__icontains=sw)
+                    Q(user__talents__category__name__icontains=sw) |
+                    Q(user__first_name__icontains=sw) |
+                    Q(user__last_name__icontains=sw)
                 )
             locations_qs = locations_qs.filter(loc_sq)
 
-        # Rating Filter
+        # Apply Rating Filter
         if min_rating_param:
             try:
                 min_rating = float(min_rating_param)
@@ -199,39 +186,68 @@ class NearbyProvidersView(APIView):
             except ValueError:
                 pass
 
-        # 5. Precise Haversine distance filtering & sorting
+        matching_locations = list(locations_qs)
         nearby_results = []
-        for loc in locations_qs:
-            dist = calculate_haversine_distance(lat, lng, loc.latitude, loc.longitude)
-            if dist <= radius_km:
-                loc.distance_km = round(dist, 1)
-                nearby_results.append(loc)
-
-        # Sort by distance ascending, then by average_rating descending
-        nearby_results.sort(key=lambda x: (x.distance_km, -float(x.user.profile.average_rating)))
-
-        # Determine diagnostic empty state reason
+        fallback_to_expanded_radius = False
         empty_reason = None
-        if len(nearby_results) == 0:
-            if (category_param or search_query) and total_matching_service == 0:
-                empty_reason = "NO_PROVIDERS_FOR_SERVICE"
-            elif (category_param or search_query) and active_matching_service == 0:
-                empty_reason = "NO_ACTIVE_PROVIDERS"
-            elif active_matching_service > 0:
-                empty_reason = "OUTSIDE_RADIUS"
+
+        if has_coords:
+            within_radius = []
+            all_with_dist = []
+            for loc in matching_locations:
+                if loc.latitude is not None and loc.longitude is not None:
+                    dist = calculate_haversine_distance(lat, lng, loc.latitude, loc.longitude)
+                    loc.distance_km = round(dist, 1)
+                    all_with_dist.append(loc)
+                    if dist <= radius_km:
+                        within_radius.append(loc)
+
+            within_radius.sort(key=lambda x: (x.distance_km, -float(x.user.profile.average_rating)))
+            all_with_dist.sort(key=lambda x: (x.distance_km, -float(x.user.profile.average_rating)))
+
+            if len(within_radius) > 0:
+                nearby_results = within_radius
+                empty_reason = None
+            elif len(all_with_dist) > 0:
+                # User is outside radius_km, but matching active providers exist!
+                # Return the closest active matching providers so search never displays a dead-end
+                nearby_results = all_with_dist
+                fallback_to_expanded_radius = True
+                empty_reason = 'OUTSIDE_RADIUS'
             else:
-                empty_reason = "NO_PROVIDERS_NEARBY"
+                nearby_results = []
+                if (category_param or search_query) and total_matching_service == 0:
+                    empty_reason = "NO_PROVIDERS_FOR_SERVICE"
+                elif (category_param or search_query) and active_matching_service == 0:
+                    empty_reason = "NO_ACTIVE_PROVIDERS"
+                else:
+                    empty_reason = "NO_PROVIDERS_NEARBY"
+        else:
+            # No GPS coordinates provided - return all matching active providers sorted by rating
+            for loc in matching_locations:
+                loc.distance_km = None
+            matching_locations.sort(key=lambda x: -float(x.user.profile.average_rating))
+            nearby_results = matching_locations
+            if len(nearby_results) == 0:
+                if (category_param or search_query) and total_matching_service == 0:
+                    empty_reason = "NO_PROVIDERS_FOR_SERVICE"
+                elif (category_param or search_query) and active_matching_service == 0:
+                    empty_reason = "NO_ACTIVE_PROVIDERS"
+                else:
+                    empty_reason = "NO_LOCATION"
 
         serializer = NearbyProviderSerializer(nearby_results, many=True, context={'request': request})
         return Response({
             'count': len(nearby_results),
             'radius_km': radius_km,
-            'search_center': {'lat': lat, 'lng': lng},
+            'search_center': {'lat': lat, 'lng': lng} if has_coords else None,
             'diagnostics': {
                 'total_matching_service': total_matching_service,
                 'active_matching_service': active_matching_service,
-                'within_radius_count': len(nearby_results),
+                'within_radius_count': len([r for r in nearby_results if r.distance_km is not None and r.distance_km <= radius_km]) if has_coords else 0,
                 'empty_reason': empty_reason,
+                'fallback_to_expanded_radius': fallback_to_expanded_radius,
+                'requires_location_for_distance': not has_coords,
             },
             'results': serializer.data
         }, status=status.HTTP_200_OK)

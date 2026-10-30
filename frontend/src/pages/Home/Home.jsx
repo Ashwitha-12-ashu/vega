@@ -149,6 +149,7 @@ function Home() {
     coordinates?.lng,
     radius,
     selectedCategory,
+    searchQuery,
   ]);
 
   /* --------------------------------

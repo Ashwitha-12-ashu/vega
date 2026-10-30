@@ -69,8 +69,8 @@ const ProviderCard = ({ provider, onBookNow }) => {
           </div>
         </div>
 
-        {/* Distance Badge */}
-        {provider.distance_km !== undefined && (
+        {/* Distance or City Badge */}
+        {provider.distance_km !== undefined && provider.distance_km !== null ? (
           <div
             style={{
               display: 'inline-flex',
@@ -89,7 +89,26 @@ const ProviderCard = ({ provider, onBookNow }) => {
             <MapPin size={13} />
             {provider.distance_km} km
           </div>
-        )}
+        ) : provider.city ? (
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.25rem',
+              backgroundColor: '#f1f5f9',
+              color: 'var(--slate-700)',
+              padding: '0.3rem 0.625rem',
+              borderRadius: 'var(--radius-full)',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              border: '1px solid #e2e8f0',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <MapPin size={13} />
+            {provider.city}
+          </div>
+        ) : null}
       </div>
 
       {/* Active Service Offering */}

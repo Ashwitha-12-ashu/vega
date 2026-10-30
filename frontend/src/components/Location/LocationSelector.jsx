@@ -13,16 +13,16 @@ import {
 import './LocationSelector.css';
 
 const POPULAR_CITIES = [
+  { city: 'Ongole', lat: 15.5057, lng: 80.0499, address: 'Ongole, Andhra Pradesh' },
+  { city: 'Hyderabad', lat: 17.3850, lng: 78.4867, address: 'Hyderabad, Telangana' },
   { city: 'Bengaluru', lat: 12.9716, lng: 77.5946, address: 'Bengaluru, Karnataka' },
+  { city: 'Vijayawada', lat: 16.5062, lng: 80.6480, address: 'Vijayawada, Andhra Pradesh' },
+  { city: 'Visakhapatnam', lat: 17.6868, lng: 83.2185, address: 'Visakhapatnam, Andhra Pradesh' },
+  { city: 'Chennai', lat: 13.0827, lng: 80.2707, address: 'Chennai, Tamil Nadu' },
   { city: 'Mumbai', lat: 19.0760, lng: 72.8777, address: 'Mumbai, Maharashtra' },
   { city: 'Delhi NCR', lat: 28.6139, lng: 77.2090, address: 'New Delhi, Delhi' },
-  { city: 'Hyderabad', lat: 17.3850, lng: 78.4867, address: 'Hyderabad, Telangana' },
-  { city: 'Chennai', lat: 13.0827, lng: 80.2707, address: 'Chennai, Tamil Nadu' },
   { city: 'Pune', lat: 18.5204, lng: 73.8567, address: 'Pune, Maharashtra' },
   { city: 'Kolkata', lat: 22.5726, lng: 88.3639, address: 'Kolkata, West Bengal' },
-  { city: 'Ahmedabad', lat: 23.0225, lng: 72.5714, address: 'Ahmedabad, Gujarat' },
-  { city: 'Jaipur', lat: 26.9124, lng: 75.7873, address: 'Jaipur, Rajasthan' },
-  { city: 'Chandigarh', lat: 30.7333, lng: 76.7794, address: 'Chandigarh, Punjab' },
 ];
 
 export const LocationPermissionBanner = () => {

@@ -68,7 +68,7 @@ const NearbyProviders = () => {
 
   useEffect(() => {
     loadProviders();
-  }, [coordinates.lat, coordinates.lng, radius, selectedCategory, minRating]);
+  }, [coordinates.lat, coordinates.lng, radius, selectedCategory, searchQuery, minRating]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -89,6 +89,25 @@ const NearbyProviders = () => {
 
   const renderEmptyState = () => {
     const reason = diagnostics?.empty_reason;
+
+    if (searchQuery || selectedCategory) {
+      return (
+        <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem', borderRadius: 'var(--radius-2xl)' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#f1f5f9', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+            <Search size={28} />
+          </div>
+          <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--slate-900)', marginBottom: '0.5rem' }}>
+            No Providers Found for "{searchQuery || selectedCategory}"
+          </h3>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '500px', margin: '0 auto 1.5rem', lineHeight: 1.6 }}>
+            We could not find active professionals matching your search query. Try searching for "Electrician", "Plumber", "Mehendi", "Cleaning", or browsing categories.
+          </p>
+          <button onClick={() => { setSelectedCategory(''); setSearchQuery(''); }} className="btn btn-primary">
+            Browse All Available Services
+          </button>
+        </div>
+      );
+    }
 
     if (reason === 'NO_LOCATION' || (!coordinates.lat && !loading)) {
       return (
@@ -424,6 +443,70 @@ const NearbyProviders = () => {
           </div>
         </div>
       ) : null}
+
+      {/* Search Context / Proximity Alerts */}
+      {!loading && providers.length > 0 && diagnostics?.fallback_to_expanded_radius && (
+        <div
+          style={{
+            backgroundColor: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            borderRadius: 'var(--radius-lg)',
+            padding: '0.875rem 1.25rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', color: '#1e40af', fontSize: '0.9rem', fontWeight: 600 }}>
+            <MapPin size={18} />
+            <span>
+              No providers directly within {radius} km. Showing closest available verified professionals for your search:
+            </span>
+          </div>
+          <button
+            onClick={() => setRadius(Math.max(radius * 2, 25))}
+            className="btn btn-outline btn-sm"
+            style={{ borderColor: '#3b82f6', color: '#1d4ed8', padding: '0.35rem 0.75rem', fontSize: '0.8125rem' }}
+          >
+            Expand Search Radius
+          </button>
+        </div>
+      )}
+
+      {!loading && providers.length > 0 && !coordinates?.lat && (
+        <div
+          style={{
+            backgroundColor: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            borderRadius: 'var(--radius-lg)',
+            padding: '0.875rem 1.25rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', color: '#166534', fontSize: '0.9rem', fontWeight: 600 }}>
+            <MapPin size={18} />
+            <span>
+              Showing verified service providers matching your search. Enable GPS location to calculate exact distance to your location.
+            </span>
+          </div>
+          <button
+            onClick={requestBrowserLocation}
+            disabled={isDetecting}
+            className="btn btn-primary btn-sm"
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.8125rem' }}
+          >
+            {isDetecting ? 'Detecting GPS...' : 'Enable GPS'}
+          </button>
+        </div>
+      )}
 
       {/* Provider List Grid */}
       {loading ? (

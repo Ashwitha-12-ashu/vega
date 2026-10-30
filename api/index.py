@@ -24,6 +24,11 @@ try:
     from django.conf import settings
     if getattr(settings, 'IS_REMOTE_DB', False):
         call_command('migrate', interactive=False)
+    else:
+        from apps.services.models import ServiceCategory
+        if ServiceCategory.objects.count() == 0:
+            call_command('migrate', interactive=False)
+            call_command('seed_demo_data')
 except Exception:
     pass
 

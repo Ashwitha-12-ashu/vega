@@ -81,3 +81,19 @@ class GeospatialNearbyDiscoveryTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 0)
+
+    def test_search_without_location_coordinates(self):
+        # Search for "Plumber" without lat/lng coordinates should return active matching providers
+        url = '/api/providers/nearby/?search=Plumber'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['distance_km'], None)
+
+    def test_search_keyword_matching(self):
+        # Search for specific provider name "Jones" should match Provider 2
+        url = '/api/providers/nearby/?search=Jones'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['count'], 1)
+        self.assertEqual(response.data['results'][0]['provider_id'], self.p2.id)
