@@ -19,50 +19,76 @@ const EMPTY_COORDINATES = {
   address: '',
 };
 
-export const LocationProvider = ({ children }) => {
-  const [coordinates, setCoordinates] = useState(() => {
+/**
+ * Safely parse coordinates from local storage, with fallback to authenticated user's profile location.
+ */
+const getSavedOrUserCoords = () => {
+  // 1. Check explicit vega_user_coords
+  try {
     const saved = localStorage.getItem('vega_user_coords');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (
-          parsed &&
-          parsed.lat !== null &&
-          parsed.lng !== null &&
-          !isNaN(parsed.lat) &&
-          !isNaN(parsed.lng)
-        ) {
-          return parsed;
-        }
-      } catch (error) {
-        console.error('Failed to read saved location:', error);
+    if (saved && saved !== 'undefined') {
+      const parsed = JSON.parse(saved);
+      if (
+        parsed &&
+        parsed.lat !== null &&
+        parsed.lng !== null &&
+        !isNaN(Number(parsed.lat)) &&
+        !isNaN(Number(parsed.lng))
+      ) {
+        return {
+          lat: Number(parsed.lat),
+          lng: Number(parsed.lng),
+          city: parsed.city || 'Your Location',
+          address: parsed.address || '',
+        };
       }
     }
-    return EMPTY_COORDINATES;
-  });
+  } catch (error) {
+    console.warn('Failed to parse vega_user_coords:', error);
+  }
 
+  // 2. Fallback to authenticated user's location saved in vega_user
+  try {
+    const savedUser = localStorage.getItem('vega_user');
+    if (savedUser && savedUser !== 'undefined') {
+      const user = JSON.parse(savedUser);
+      if (
+        user?.location?.latitude !== undefined &&
+        user?.location?.latitude !== null &&
+        user?.location?.longitude !== undefined &&
+        user?.location?.longitude !== null
+      ) {
+        return {
+          lat: Number(user.location.latitude),
+          lng: Number(user.location.longitude),
+          city: user.location.city || 'Your Location',
+          address: user.location.address || '',
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to extract location from vega_user:', error);
+  }
+
+  return EMPTY_COORDINATES;
+};
+
+export const LocationProvider = ({ children }) => {
+  const [coordinates, setCoordinates] = useState(() => getSavedOrUserCoords());
   const [radius, setRadius] = useState(5);
   const [isDetecting, setIsDetecting] = useState(false);
   const [hasLocationPermission, setHasLocationPermission] = useState(() => {
-    const saved = localStorage.getItem('vega_user_coords');
-    return Boolean(saved && JSON.parse(saved)?.lat !== null);
+    const initial = getSavedOrUserCoords();
+    return Boolean(initial.lat !== null && initial.lng !== null);
   });
   const [locationError, setLocationError] = useState('');
   const [permissionStatus, setPermissionStatus] = useState('prompt'); // 'prompt' | 'granted' | 'denied' | 'unavailable' | 'timeout'
 
   // Control whether the top location banner is visible
   const [isPromptVisible, setIsPromptVisible] = useState(() => {
-    // Only show if user does not already have valid coordinates and hasn't dismissed this session
-    const saved = localStorage.getItem('vega_user_coords');
+    const initial = getSavedOrUserCoords();
+    if (initial.lat !== null && initial.lng !== null) return false;
     const dismissed = sessionStorage.getItem('vega_location_prompt_dismissed');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed?.lat !== null && parsed?.lng !== null) return false;
-      } catch (e) {
-        // Continue
-      }
-    }
     return !dismissed;
   });
 
@@ -76,25 +102,38 @@ export const LocationProvider = ({ children }) => {
    * -----------------------------------------
    */
   const saveLocation = useCallback(async (newCoords) => {
-    setCoordinates(newCoords);
+    if (!newCoords || newCoords.lat === null || newCoords.lng === null) return;
+
+    const sanitizedCoords = {
+      lat: Number(newCoords.lat),
+      lng: Number(newCoords.lng),
+      city: newCoords.city || 'Your Location',
+      address: newCoords.address || '',
+    };
+
+    setCoordinates(sanitizedCoords);
     setHasLocationPermission(true);
     setPermissionStatus('granted');
     setLocationError('');
     setIsPromptVisible(false);
 
-    localStorage.setItem('vega_user_coords', JSON.stringify(newCoords));
+    try {
+      localStorage.setItem('vega_user_coords', JSON.stringify(sanitizedCoords));
+    } catch (e) {
+      console.warn('Could not persist vega_user_coords to localStorage:', e);
+    }
 
     // Send location to Django backend if user is authenticated
     if (localStorage.getItem('vega_access_token')) {
       try {
         await locationService.updateLocation({
-          latitude: newCoords.lat,
-          longitude: newCoords.lng,
-          address: newCoords.address || '',
-          city: newCoords.city || '',
+          latitude: sanitizedCoords.lat,
+          longitude: sanitizedCoords.lng,
+          address: sanitizedCoords.address || '',
+          city: sanitizedCoords.city || '',
         });
       } catch (error) {
-        console.error('Failed to sync location to backend:', error);
+        console.warn('Failed to sync location to backend:', error);
       }
     }
   }, []);
@@ -144,6 +183,10 @@ export const LocationProvider = ({ children }) => {
   /*
    * -----------------------------------------
    * DETECT REAL BROWSER LOCATION
+   * Uses smart multi-tier detection:
+   * 1) Fast Wi-Fi / IP Triangulation (enableHighAccuracy: false)
+   * 2) Hardware GPS fallback if available
+   * 3) Graceful fallback to user profile / manual selection without crashing
    * -----------------------------------------
    */
   const requestBrowserLocation = useCallback(() => {
@@ -159,58 +202,89 @@ export const LocationProvider = ({ children }) => {
     setLocationError('');
     setIsPromptVisible(true);
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          const lat = parseFloat(latitude.toFixed(6));
-          const lng = parseFloat(longitude.toFixed(6));
+    const onLocationSuccess = async (position) => {
+      try {
+        const { latitude, longitude } = position.coords;
+        const lat = parseFloat(latitude.toFixed(6));
+        const lng = parseFloat(longitude.toFixed(6));
 
-          // Fetch human-readable city/neighborhood
-          const { city, address } = await reverseGeocode(lat, lng);
+        // Fetch human-readable city/neighborhood
+        const { city, address } = await reverseGeocode(lat, lng);
 
-          const newCoords = {
-            lat,
-            lng,
-            city,
-            address,
-          };
+        const newCoords = {
+          lat,
+          lng,
+          city,
+          address,
+        };
 
-          await saveLocation(newCoords);
-          setIsDetecting(false);
-          showToast(`📍 Location detected: ${city}`, 'success');
-        } catch (error) {
-          console.error('Location processing failed:', error);
-          setIsDetecting(false);
-          setLocationError('Unable to process your GPS location.');
-        }
-      },
-      (error) => {
-        console.warn('Browser geolocation error:', error);
+        await saveLocation(newCoords);
         setIsDetecting(false);
+        showToast(`📍 Location detected: ${city}`, 'success');
+      } catch (error) {
+        console.error('Location processing failed:', error);
+        setIsDetecting(false);
+        setLocationError('Unable to process your GPS location.');
+      }
+    };
 
-        let message = 'Could not retrieve your location.';
-        if (error.code === error.PERMISSION_DENIED) {
-          message =
-            'Location permission was denied. Location access is needed to find nearby service providers in your neighborhood.';
-          setPermissionStatus('denied');
-        } else if (error.code === error.POSITION_UNAVAILABLE) {
-          message =
-            'Your GPS location is currently unavailable. Please check your device location settings or select your city manually.';
-          setPermissionStatus('unavailable');
-        } else if (error.code === error.TIMEOUT) {
-          message =
-            'Location detection timed out. Please try again or select your city manually.';
-          setPermissionStatus('timeout');
+    const onLocationFailure = (error) => {
+      console.warn('Browser geolocation error:', error?.message || error);
+      setIsDetecting(false);
+
+      // Check if user already has profile location to fall back to
+      const fallbackCoords = getSavedOrUserCoords();
+      if (fallbackCoords.lat !== null && fallbackCoords.lng !== null) {
+        setCoordinates(fallbackCoords);
+        setHasLocationPermission(true);
+        setIsPromptVisible(false);
+        showToast(`📍 Using your profile location: ${fallbackCoords.city}`, 'info');
+        return;
+      }
+
+      let message = 'Could not retrieve your location.';
+      if (error && error.code === error.PERMISSION_DENIED) {
+        message =
+          'Location permission was denied. You can select your city manually from the location selector.';
+        setPermissionStatus('denied');
+      } else if (error && error.code === error.POSITION_UNAVAILABLE) {
+        message =
+          'GPS location is currently unavailable on this device. You can choose your city manually.';
+        setPermissionStatus('unavailable');
+      } else if (error && error.code === error.TIMEOUT) {
+        message =
+          'Location detection timed out. You can select your city manually.';
+        setPermissionStatus('timeout');
+      }
+
+      setLocationError(message);
+      showToast(message, 'warning');
+    };
+
+    // Tier 1: Try network/Wi-Fi positioning (enableHighAccuracy: false)
+    // This succeeds immediately on laptops, desktop PCs, and indoor mobile devices
+    navigator.geolocation.getCurrentPosition(
+      onLocationSuccess,
+      (err) => {
+        // If Wi-Fi/IP location timed out or failed, try high accuracy once
+        if (err.code !== err.PERMISSION_DENIED) {
+          navigator.geolocation.getCurrentPosition(
+            onLocationSuccess,
+            onLocationFailure,
+            {
+              enableHighAccuracy: true,
+              timeout: 6000,
+              maximumAge: 60000,
+            }
+          );
+        } else {
+          onLocationFailure(err);
         }
-
-        setLocationError(message);
-        showToast(message, 'warning');
       },
       {
-        enableHighAccuracy: true,
-        timeout: 12000,
-        maximumAge: 0,
+        enableHighAccuracy: false,
+        timeout: 8000,
+        maximumAge: 300000, // Reuse cached position up to 5 minutes
       }
     );
   }, [saveLocation, showToast]);
@@ -219,36 +293,44 @@ export const LocationProvider = ({ children }) => {
    * -----------------------------------------
    * AUTOMATIC LOCATION DETECTION ON OPEN
    * -----------------------------------------
-   * Whenever someone opens the deployed VEGA
-   * website link, immediately request location.
    */
   useEffect(() => {
-    // Check permission status via Permissions API if available
-    if (navigator.permissions && navigator.permissions.query) {
-      navigator.permissions
-        .query({ name: 'geolocation' })
-        .then((perm) => {
-          if (perm.state === 'granted') {
-            setPermissionStatus('granted');
-          } else if (perm.state === 'denied') {
-            setPermissionStatus('denied');
-          } else {
-            setPermissionStatus('prompt');
-          }
-
-          perm.onchange = () => {
+    // Safely check permission status via Permissions API if available (WebKit/Safari guard)
+    if (
+      typeof navigator !== 'undefined' &&
+      navigator.permissions &&
+      typeof navigator.permissions.query === 'function'
+    ) {
+      try {
+        navigator.permissions
+          .query({ name: 'geolocation' })
+          .then((perm) => {
             if (perm.state === 'granted') {
               setPermissionStatus('granted');
-              setHasLocationPermission(true);
-              setIsPromptVisible(false);
-              requestBrowserLocation();
             } else if (perm.state === 'denied') {
               setPermissionStatus('denied');
-              setHasLocationPermission(false);
+            } else {
+              setPermissionStatus('prompt');
             }
-          };
-        })
-        .catch(() => {});
+
+            perm.onchange = () => {
+              if (perm.state === 'granted') {
+                setPermissionStatus('granted');
+                setHasLocationPermission(true);
+                setIsPromptVisible(false);
+                requestBrowserLocation();
+              } else if (perm.state === 'denied') {
+                setPermissionStatus('denied');
+                setHasLocationPermission(false);
+              }
+            };
+          })
+          .catch(() => {
+            // Safari / older WebKit throws TypeError: 'geolocation' is not a valid PermissionName
+          });
+      } catch {
+        // Guard synchronous throw in Safari
+      }
     }
 
     if (hasAttemptedAutoDetection.current) {
@@ -256,15 +338,44 @@ export const LocationProvider = ({ children }) => {
     }
     hasAttemptedAutoDetection.current = true;
 
-    const saved = localStorage.getItem('vega_user_coords');
-    if (!saved) {
-      // Immediately prompt for location on initial visit
+    const coords = getSavedOrUserCoords();
+    if (coords.lat === null || coords.lng === null) {
+      // Prompt for location on initial visit
       const timer = setTimeout(() => {
         requestBrowserLocation();
       }, 500);
       return () => clearTimeout(timer);
     }
   }, [requestBrowserLocation]);
+
+  /*
+   * -----------------------------------------
+   * MULTI-TAB & AUTH SYNC LISTENER
+   * Automatically updates coordinates when user logs in
+   * -----------------------------------------
+   */
+  useEffect(() => {
+    const handleUserUpdate = () => {
+      const latestCoords = getSavedOrUserCoords();
+      if (latestCoords.lat !== null && latestCoords.lng !== null) {
+        setCoordinates((prev) => {
+          if (prev.lat === null || prev.lng === null) {
+            return latestCoords;
+          }
+          return prev;
+        });
+        setHasLocationPermission(true);
+        setIsPromptVisible(false);
+      }
+    };
+
+    window.addEventListener('vega_user_updated', handleUserUpdate);
+    window.addEventListener('storage', handleUserUpdate);
+    return () => {
+      window.removeEventListener('vega_user_updated', handleUserUpdate);
+      window.removeEventListener('storage', handleUserUpdate);
+    };
+  }, []);
 
   /*
    * -----------------------------------------
@@ -291,7 +402,11 @@ export const LocationProvider = ({ children }) => {
    */
   const dismissPrompt = () => {
     setIsPromptVisible(false);
-    sessionStorage.setItem('vega_location_prompt_dismissed', 'true');
+    try {
+      sessionStorage.setItem('vega_location_prompt_dismissed', 'true');
+    } catch {
+      // Storage quota guard
+    }
   };
 
   /*
@@ -300,13 +415,17 @@ export const LocationProvider = ({ children }) => {
    * -----------------------------------------
    */
   const clearLocation = () => {
-    localStorage.removeItem('vega_user_coords');
+    try {
+      localStorage.removeItem('vega_user_coords');
+      sessionStorage.removeItem('vega_location_prompt_dismissed');
+    } catch {
+      // Storage guard
+    }
     setCoordinates(EMPTY_COORDINATES);
     setHasLocationPermission(false);
     setPermissionStatus('prompt');
     setLocationError('');
     setIsPromptVisible(true);
-    sessionStorage.removeItem('vega_location_prompt_dismissed');
   };
 
   const openManualModal = () => setIsManualModalOpen(true);
@@ -360,3 +479,5 @@ export const useLocation = () => {
   }
   return context;
 };
+
+export default LocationContext;

@@ -14,6 +14,7 @@ import { PublicRoute } from './routes/PublicRoute';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { LocationPermissionBanner, ManualLocationModal } from './components/Location/LocationSelector';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 import Landing from './pages/Landing/Landing';
 import Login from './pages/Login/Login';
@@ -276,22 +277,18 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <ToastProvider>
-
-      <AuthProvider>
-
-        <LocationProvider>
-
-          <Router>
-
-            <AppRoutes />
-
-          </Router>
-
-        </LocationProvider>
-
-      </AuthProvider>
-
-    </ToastProvider>
+    <ErrorBoundary>
+      <ToastProvider>
+        <AuthProvider>
+          <LocationProvider>
+            <Router>
+              <ErrorBoundary>
+                <AppRoutes />
+              </ErrorBoundary>
+            </Router>
+          </LocationProvider>
+        </AuthProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }

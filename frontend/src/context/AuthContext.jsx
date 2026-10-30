@@ -97,6 +97,27 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     const data = await authService.login(credentials);
     setUser(data.user);
+    setLoading(false);
+
+    // If user has saved location in profile, persist it to vega_user_coords if not already set
+    if (
+      data.user?.location?.latitude !== undefined &&
+      data.user?.location?.latitude !== null &&
+      data.user?.location?.longitude !== undefined &&
+      data.user?.location?.longitude !== null
+    ) {
+      const userLoc = {
+        lat: Number(data.user.location.latitude),
+        lng: Number(data.user.location.longitude),
+        city: data.user.location.city || 'Your Location',
+        address: data.user.location.address || '',
+      };
+      if (!localStorage.getItem('vega_user_coords')) {
+        localStorage.setItem('vega_user_coords', JSON.stringify(userLoc));
+      }
+    }
+    window.dispatchEvent(new Event('vega_user_updated'));
+
     showToast(`Welcome back, ${data.user.first_name || data.user.username}!`, 'success');
     return data;
   };
@@ -104,6 +125,8 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     const data = await authService.register(userData);
     setUser(data.user);
+    setLoading(false);
+    window.dispatchEvent(new Event('vega_user_updated'));
     showToast('Account created successfully! Welcome to VEGA.', 'success');
     return data;
   };
@@ -111,6 +134,8 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     await authService.logout();
     setUser(null);
+    setLoading(false);
+    window.dispatchEvent(new Event('vega_user_updated'));
     showToast('Logged out successfully.', 'info');
   };
 

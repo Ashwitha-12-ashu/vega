@@ -548,9 +548,11 @@ function Home() {
                   "Local Service";
 
                 const rating =
-                  provider?.average_rating ||
-                  provider?.provider_rating ||
-                  5.0;
+                  typeof provider?.average_rating === 'number'
+                    ? provider.average_rating
+                    : typeof provider?.provider_rating === 'number'
+                      ? provider.provider_rating
+                      : 5.0;
 
                 const reviews =
                   provider?.total_reviews ??
@@ -565,11 +567,11 @@ function Home() {
                       : "₹300";
 
                 const distance =
-                  provider?.distance_km !== undefined
+                  provider?.distance_km !== undefined && provider?.distance_km !== null
                     ? `${provider.distance_km} km`
                     : provider?.distance
                       ? `${provider.distance} km`
-                      : "Near you";
+                      : provider?.city || "Near you";
 
                 const image =
                   provider?.profile_photo ||
