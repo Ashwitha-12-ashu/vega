@@ -134,7 +134,7 @@ elif DB_HOST and DB_HOST not in ('localhost', '127.0.0.1'):
             'HOST': DB_HOST,
             'PORT': os.getenv('DB_PORT', '5432'),
             'OPTIONS': {
-                'sslmode': os.getenv('DB_SSLMODE', 'require'),
+                'sslmode': os.getenv('DB_SSLMODE', 'disable' if DB_HOST in ('db', 'postgres') else 'require'),
             },
         }
     }
