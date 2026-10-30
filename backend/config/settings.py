@@ -155,7 +155,10 @@ elif os.getenv('VERCEL') == '1':
     # Vercel Serverless environment: writable SQLite database located in /tmp with seed data
     import shutil
     tmp_db = Path('/tmp/db.sqlite3')
-    starter_db = BASE_DIR / 'db.sqlite3'
+    starter_db = BASE_DIR / 'db_seed.sqlite3'
+    if not starter_db.exists():
+        starter_db = BASE_DIR / 'db.sqlite3'
+
     if not tmp_db.exists() and starter_db.exists():
         try:
             shutil.copy2(starter_db, tmp_db)
